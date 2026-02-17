@@ -2,27 +2,43 @@ function transform(input) {
   // Configure your backend URL here (no trailing slash)
   const IMAGE_BASE_URL = 'https://trmnl.bettens.dev/trakttv';
 
-  // Helper to create unique key for deduplication
-  const getEpisodeKey = (item) =>
-    `${item.show?.title}-${item.episode?.season}-${item.episode?.number}`;
-
   const getMovieKey = (item) =>
     `${item.movie?.title}-${item.movie?.year}`;
 
   const getShowKey = (item) =>
     `${item.title}`;
 
-  // In-progress episodes
-  const episodesInProgress = (input.IDX_0?.data || []).map(item => ({
-    type: 'episode',
-    show: item.show?.title,
+  // Helper: group episodes by show, deduplicating individual episodes
+  function groupEpisodesByShow(items, episodeMapper) {
+    const showMap = new Map();
+    const seenEpisodes = new Set();
+    items.forEach(item => {
+      const showKey = item.show?.title || 'Unknown';
+      const epKey = `${showKey}-S${item.episode?.season}E${item.episode?.number}`;
+      if (seenEpisodes.has(epKey)) return;
+      seenEpisodes.add(epKey);
+
+      if (!showMap.has(showKey)) {
+        showMap.set(showKey, {
+          type: 'show_group',
+          show: item.show?.title,
+          tmdb_id: item.show?.ids?.tmdb || null,
+          media_type: 'show',
+          episodes: []
+        });
+      }
+      showMap.get(showKey).episodes.push(episodeMapper(item));
+    });
+    return Array.from(showMap.values());
+  }
+
+  // In-progress episodes (grouped by show)
+  const episodesInProgress = groupEpisodesByShow(input.IDX_0?.data || [], item => ({
     season: item.episode?.season,
     episode: item.episode?.number,
     title: item.episode?.title,
     progress: Math.round(item.progress),
-    paused_at: item.paused_at,
-    tmdb_id: item.show?.ids?.tmdb || null,
-    media_type: 'show'
+    paused_at: item.paused_at
   }));
 
   // In-progress movies
@@ -36,24 +52,13 @@ function transform(input) {
     media_type: 'movie'
   }));
 
-  // Recently watched episodes (with deduplication)
-  const recentEpisodesMap = new Map();
-  (input.IDX_2?.data || []).forEach(item => {
-    const key = getEpisodeKey(item);
-    if (!recentEpisodesMap.has(key)) {
-      recentEpisodesMap.set(key, {
-        type: 'episode',
-        show: item.show?.title,
-        season: item.episode?.season,
-        episode: item.episode?.number,
-        title: item.episode?.title,
-        watched_at: item.watched_at,
-        tmdb_id: item.show?.ids?.tmdb || null,
-        media_type: 'show'
-      });
-    }
-  });
-  const recentEpisodes = Array.from(recentEpisodesMap.values());
+  // Recently watched episodes (grouped by show)
+  const recentEpisodes = groupEpisodesByShow(input.IDX_2?.data || [], item => ({
+    season: item.episode?.season,
+    episode: item.episode?.number,
+    title: item.episode?.title,
+    watched_at: item.watched_at
+  }));
 
   // Recently watched movies (with deduplication)
   const recentMoviesMap = new Map();
@@ -72,24 +77,13 @@ function transform(input) {
   });
   const recentMovies = Array.from(recentMoviesMap.values());
 
-  // Upcoming shows (with deduplication)
-  const upcomingShowsMap = new Map();
-  (input.IDX_4?.data || []).forEach(item => {
-    const key = getEpisodeKey(item);
-    if (!upcomingShowsMap.has(key)) {
-      upcomingShowsMap.set(key, {
-        type: 'episode',
-        show: item.show?.title,
-        season: item.episode?.season,
-        episode: item.episode?.number,
-        title: item.episode?.title,
-        airs_at: item.first_aired,
-        tmdb_id: item.show?.ids?.tmdb || null,
-        media_type: 'show'
-      });
-    }
-  });
-  const upcomingShows = Array.from(upcomingShowsMap.values());
+  // Upcoming episodes (grouped by show)
+  const upcomingShows = groupEpisodesByShow(input.IDX_4?.data || [], item => ({
+    season: item.episode?.season,
+    episode: item.episode?.number,
+    title: item.episode?.title,
+    airs_at: item.first_aired
+  }));
 
   // Upcoming movies (with deduplication)
   const upcomingMoviesMap = new Map();
