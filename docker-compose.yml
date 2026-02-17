@@ -1,0 +1,44 @@
+services:
+  trmnl-traktv-tmdb:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: trmnl-traktv-tmdb
+    env_file:
+      - .env
+    ports:
+      - "5090:5000"
+    environment:
+      - ENABLE_IP_WHITELIST=${ENABLE_IP_WHITELIST:-true}
+      - TMDB_API_KEY=${TMDB_API_KEY}
+      - FANART_API_KEY=${FANART_API_KEY:-}
+      - REDIS_URL=redis://redis:6379/0
+      - CACHE_TTL_SECONDS=${CACHE_TTL_SECONDS:-604800}
+      - CACHE_TTL_NOT_FOUND_SECONDS=${CACHE_TTL_NOT_FOUND_SECONDS:-86400}
+      - TMDB_IMAGE_SIZE=${TMDB_IMAGE_SIZE:-w185}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: trmnl-traktv-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  redis_data:
