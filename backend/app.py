@@ -178,6 +178,20 @@ def require_whitelisted_ip(f):
 # IMAGE LOOKUP
 # ============================================================================
 
+def tmdb_headers() -> dict:
+    """Return auth headers for TMDB API. Supports both v3 key and v4 bearer token."""
+    if TMDB_API_KEY.startswith('eyJ'):
+        return {'Authorization': f'Bearer {TMDB_API_KEY}'}
+    return {}
+
+
+def tmdb_params() -> dict:
+    """Return query params for TMDB API. Only needed for v3 keys."""
+    if not TMDB_API_KEY.startswith('eyJ'):
+        return {'api_key': TMDB_API_KEY}
+    return {}
+
+
 def fetch_tmdb_poster(media_type: str, tmdb_id: str) -> Optional[bytes]:
     """
     Fetch a poster image from TMDB.
@@ -192,7 +206,7 @@ def fetch_tmdb_poster(media_type: str, tmdb_id: str) -> Optional[bytes]:
         with httpx.Client(timeout=10.0) as client:
             # Get metadata to find poster_path
             url = f"{TMDB_API_BASE}/{media_type}/{tmdb_id}"
-            resp = client.get(url, params={'api_key': TMDB_API_KEY})
+            resp = client.get(url, params=tmdb_params(), headers=tmdb_headers())
             if resp.status_code == 404:
                 logger.info(f"TMDB: {media_type}/{tmdb_id} not found")
                 return None
@@ -234,7 +248,8 @@ def get_tvdb_id_from_tmdb(tmdb_id: str) -> Optional[int]:
         with httpx.Client(timeout=10.0) as client:
             resp = client.get(
                 f"{TMDB_API_BASE}/tv/{tmdb_id}/external_ids",
-                params={'api_key': TMDB_API_KEY}
+                params=tmdb_params(),
+                headers=tmdb_headers(),
             )
             resp.raise_for_status()
             tvdb_id = resp.json().get('tvdb_id')

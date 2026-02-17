@@ -1,6 +1,6 @@
 function transform(input) {
   // Configure your backend URL here (no trailing slash)
-  const IMAGE_BASE_URL = '';
+  const IMAGE_BASE_URL = 'https://trmnl.bettens.dev/trakttv';
 
   // Helper to create unique key for deduplication
   const getEpisodeKey = (item) =>
