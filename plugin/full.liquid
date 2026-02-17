@@ -1,0 +1,182 @@
+{% template recently_watched_episode %}
+<div class="flex flex--row gap--small">
+  {% if episode.tmdb_id %}
+    <img class="image image-dither" src="{{data.image_base_url}}/image/{{episode.media_type}}/{{episode.tmdb_id}}" style="width:48px;height:auto;" />
+  {% endif %}
+  <div class="flex flex--col">
+    <div class="label">{{episode.show}}</div>
+    <div class="label">S{{episode.season}}E{{episode.episode}}: {{episode.title}}</div>
+    <div class="label">Watched: {{episode.watched_at | date: "%Y-%m-%d" }}</div>
+  </div>
+</div>
+{% endtemplate %}
+
+{% template recently_watched_movie %}
+<div class="flex flex--row gap--small">
+  {% if movie.tmdb_id %}
+    <img class="image image-dither" src="{{data.image_base_url}}/image/{{movie.media_type}}/{{movie.tmdb_id}}" style="width:48px;height:auto;" />
+  {% endif %}
+  <div class="flex flex--col">
+    <div class="label">{{movie.title}} ({{movie.year}})</div>
+    <div class="label">Watched: {{movie.watched_at | date: "%Y-%m-%d" }}</div>
+  </div>
+</div>
+{% endtemplate %}
+
+{% template continue_watching_episode %}
+<div class="flex flex--row gap--small">
+  {% if episode.tmdb_id %}
+    <img class="image image-dither" src="{{data.image_base_url}}/image/{{episode.media_type}}/{{episode.tmdb_id}}" style="width:48px;height:auto;" />
+  {% endif %}
+  <div class="flex flex--col">
+    <div class="label">{{episode.show}}</div>
+    <div class="label">S{{episode.season}}E{{episode.episode}}: {{episode.title}}</div>
+    <div class="progress-bar progress-bar--small">
+      <div class="content">
+        <span class="label label--small">Paused at:</span>
+        <span class="value value--xxsmall">{{episode.progress}}%</span>
+      </div>
+      <div class="track">
+        <div class="fill" style="width: {{episode.progress}}%"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endtemplate %}
+
+{% template continue_watching_movie %}
+<div class="flex flex--row gap--small">
+  {% if movie.tmdb_id %}
+    <img class="image image-dither" src="{{data.image_base_url}}/image/{{movie.media_type}}/{{movie.tmdb_id}}" style="width:48px;height:auto;" />
+  {% endif %}
+  <div class="flex flex--col">
+    <div class="label">{{movie.title}} ({{movie.year}})</div>
+    <div class="progress-bar progress-bar--small">
+      <div class="content">
+        <span class="label label--small">Paused at:</span>
+        <span class="value value--xxsmall">{{movie.progress}}%</span>
+      </div>
+      <div class="track">
+        <div class="fill" style="width: {{movie.progress}}%"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endtemplate %}
+
+{% template upcoming_episode %}
+<div class="flex flex--row gap--small">
+  {% if episode.tmdb_id %}
+    <img class="image image-dither" src="{{data.image_base_url}}/image/{{episode.media_type}}/{{episode.tmdb_id}}" style="width:48px;height:auto;" />
+  {% endif %}
+  <div class="flex flex--col">
+    <div class="label">{{episode.show}}</div>
+    <div class="label">S{{episode.season}}E{{episode.episode}}: {{episode.title}}</div>
+    <div class="label">Airs: {{episode.airs_at | date: "%Y-%m-%d" }}</div>
+  </div>
+</div>
+{% endtemplate %}
+
+{% template upcoming_movie %}
+<div class="flex flex--row gap--small">
+  {% if movie.tmdb_id %}
+    <img class="image image-dither" src="{{data.image_base_url}}/image/{{movie.media_type}}/{{movie.tmdb_id}}" style="width:48px;height:auto;" />
+  {% endif %}
+  <div class="flex flex--col">
+    <div class="label">{{movie.title}} ({{movie.year}})</div>
+    <div class="label">Releases: {{movie.released | date: "%Y-%m-%d" }}</div>
+  </div>
+</div>
+{% endtemplate %}
+
+{% template recommended_show %}
+<div class="flex flex--row gap--small">
+  {% if show.tmdb_id %}
+    <img class="image image-dither" src="{{data.image_base_url}}/image/{{show.media_type}}/{{show.tmdb_id}}" style="width:48px;height:auto;" />
+  {% endif %}
+  <div class="flex flex--col">
+    <div class="label">{{show.title}} ({{show.year}})</div>
+    {% if show.rating %}<div class="label">★ {{show.rating}}/10</div>{% endif %}
+    {% if show.network %}<div class="label">{{show.network}}</div>{% endif %}
+  </div>
+</div>
+{% endtemplate %}
+
+{% template recommended_movie %}
+<div class="flex flex--row gap--small">
+  {% if movie.tmdb_id %}
+    <img class="image image-dither" src="{{data.image_base_url}}/image/{{movie.media_type}}/{{movie.tmdb_id}}" style="width:48px;height:auto;" />
+  {% endif %}
+  <div class="flex flex--col">
+    <div class="label">{{movie.title}} ({{movie.year}})</div>
+    {% if movie.rating %}<div class="label">★ {{movie.rating}}/10</div>{% endif %}
+  </div>
+</div>
+{% endtemplate %}
+
+<div class="layout layout--col layout--stretch">
+  {% if data.continue_watching.size > 0 %}
+  <div class="flex flex--col">
+    <div class="title" style="text-align: left">Continue Watching:</div>
+    <div class="grid grid--cols-4">
+      {% for item in data.continue_watching | limit: 4  %}
+        {% if item.type == "episode" %}
+          {% render "continue_watching_episode", episode: item %}
+        {% elsif item.type == "movie" %}
+          {% render "continue_watching_movie", movie: item %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if data.recently_watched.size > 0 %}
+  <div class="flex flex--col">
+    <div class="title" style="text-align: left">Recently Watched:</div>
+    <div class="grid grid--cols-4">
+      {% for item in data.recently_watched | limit: 4  %}
+        {% if item.type == "episode" %}
+          {% render "recently_watched_episode", episode: item %}
+        {% elsif item.type == "movie" %}
+          {% render "recently_watched_movie", movie: item %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if data.upcoming.size > 0 %}
+  <div class="flex flex--col">
+    <div class="title" style="text-align: left">Upcoming:</div>
+    <div class="grid grid--cols-4">
+      {% for item in data.upcoming | limit: 4  %}
+        {% if item.type == "episode" %}
+          {% render "upcoming_episode", episode: item %}
+        {% elsif item.type == "movie" %}
+          {% render "upcoming_movie", movie: item %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if data.recommended.size > 0 %}
+  <div class="flex flex--col">
+    <div class="title" style="text-align: left">Recommended For You:</div>
+    <div class="grid grid--cols-4">
+      {% for item in data.recommended | limit: 4 %}
+        {% if item.type == "show" %}
+          {% render "recommended_show", show: item %}
+        {% elsif item.type == "movie" %}
+          {% render "recommended_movie", movie: item %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="title_bar">
+  <img class="image image-dither rounded" src="https://raw.githubusercontent.com/Taxel/PlexTraktSync/refs/heads/main/trakt.ico">
+  <span class="title">Trakt.tv</span>
+</div>

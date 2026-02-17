@@ -1,0 +1,12 @@
+---
+strategy: polling
+no_screen_padding: 'no'
+dark_mode: 'no'
+static_data: ''
+polling_verb: get
+polling_url: " {% liquid\r\n    assign today = \"now\" | date: \"%Y-%m-%d\"\r\n  %}\r\n  \r\n  https://api.trakt.tv/sync/playback/episodes?extended=full\r\n  https://api.trakt.tv/sync/playback/movies?extended=full\r\n  https://api.trakt.tv/sync/history/episodes?page=1&limit=10&extended=full\r\n  https://api.trakt.tv/sync/history/movies?page=1&limit=10&extended=full\r\n  https://api.trakt.tv/calendars/my/shows/{{today}}/7?extended=full\r\n  https://api.trakt.tv/calendars/my/movies/{{today}}/30?extended=full\r\n  https://api.trakt.tv/recommendations/shows?limit=10&extended=full\r\n  https://api.trakt.tv/recommendations/movies?limit=10&extended=full\r\n"
+polling_headers: Authorization=Bearer {{ oauth_access_token }}&Content-Type=application/json&trakt-api-version=2&trakt-api-key=15f86bdc5ed8f3d2ea229efc956d6fda8e291a0f5df637f68e55b4c4b65b99e7
+polling_body: ''
+id: 245666
+name: Trakt.tv
+refresh_interval: 1440
