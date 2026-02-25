@@ -1,214 +1,181 @@
-{% template recently_watched_show_group %}
-<div class="flex flex--row gap--small text--left">
+{% template show_group_item %}
+<div class="flex flex--row flex--top gap--small h--full">
   {% if show_group.tmdb_id %}
-    <img class="image image-dither w--24 h--auto" src="{{data.image_base_url}}/image/{{show_group.media_type}}/{{show_group.tmdb_id}}"/>
+    <img class="image image-dither {{img_class}}" src="{{data.image_base_url}}/image/{{show_group.media_type}}/{{show_group.tmdb_id}}"/>
   {% endif %}
-  <div class="flex flex--col flex--stretch stretch flex--top">
-    <div class="label label--underline text--left">{{show_group.show}}</div>
+  <div class="flex flex--col flex--top gap--none w--full">
+    <div class="label label--underline w--full text--left m--0">{{show_group.show}}</div>
     {% for ep in show_group.episodes | limit: 3 %}
-      <div class="label label--small text--left">S{{ep.season}}E{{ep.episode}}: {{ep.title}}</div>
+      <div class="label label--small w--full text--left m--0"><strong data-clamp="3">S{{ep.season}}E{{ep.episode}}: {{ep.title}}{% if ep.progress %} ({{ep.progress}}%){% endif %}{% if ep.airs_at %} ({{ep.airs_at | date: "%b %-d"}}){% endif %}</strong></div>
+      {% if show_group.episodes.size == 1 and ep.overview %}
+        <div class="richtext m--0"><div class="content content--small text--left"><p><i data-clamp="5">{{ep.overview}}</i></p></div></div>
+      {% endif %}
     {% endfor %}
   </div>
 </div>
 {% endtemplate %}
 
-{% template recently_watched_movie %}
-<div class="flex flex--row gap--small text--left">
+{% template movie_item %}
+<div class="flex flex--row flex--top gap--small h--full">
   {% if movie.tmdb_id %}
-    <img class="image image-dither w--24 h--auto" src="{{data.image_base_url}}/image/{{movie.media_type}}/{{movie.tmdb_id}}"/>
+    <img class="image image-dither {{img_class}}" src="{{data.image_base_url}}/image/{{movie.media_type}}/{{movie.tmdb_id}}"/>
   {% endif %}
-  <div class="flex flex--col flex--stretch stretch flex--top">
-    <div class="label text--left">{{movie.title}} ({{movie.year}})</div>
-    <div class="label label--small text--left">Watched: {{movie.watched_at | date: "%Y-%m-%d" }}</div>
-  </div>
-</div>
-{% endtemplate %}
-
-{% template continue_watching_show_group %}
-<div class="flex flex--row gap--small text--left ">
-  {% if show_group.tmdb_id %}
-    <img class="image image-dither w--24 h--auto" src="{{data.image_base_url}}/image/{{show_group.media_type}}/{{show_group.tmdb_id}}"/>
-  {% endif %}
-  <div class="flex flex--col flex--stretch stretch flex--top">
-    <div class="label text--left">{{show_group.show}}</div>
-    {% for ep in show_group.episodes %}
-      <div class="label label--small text--left">S{{ep.season}}E{{ep.episode}}: {{ep.title}} ({{ep.progress}}%)</div>
-    {% endfor %}
-  </div>
-</div>
-{% endtemplate %}
-
-{% template continue_watching_movie %}
-<div class="flex flex--row gap--small text--left">
-  {% if movie.tmdb_id %}
-    <img class="image image-dither w--24 h--auto" src="{{data.image_base_url}}/image/{{movie.media_type}}/{{movie.tmdb_id}}"/>
-  {% endif %}
-  <div class="flex flex--col flex--stretch stretch flex--top">
-    <div class="label text--left">{{movie.title}} ({{movie.year}})</div>
-    <div class="progress-bar progress-bar--small">
-      <div class="content">
-        <span class="label label--small">Paused at:</span>
-        <span class="value value--xxsmall">{{movie.progress}}%</span>
+  <div class="flex flex--col flex--top gap--none w--full">
+    <div class="label label--underline w--full text--left m--0" data-clamp="3">{{movie.title}}</div>
+    <div class="label label--small w--full text--left m--0" ><strong data-clamp="3">{{movie.year}}{% unless movie.progress %}{% if movie.watched_at %} · {{movie.watched_at | date: "%b %-d"}}{% elsif movie.released %} · {{movie.released | date: "%b %-d"}}{% elsif movie.rating %} · ★ {{movie.rating}}/10{% endif %}{% endunless %}</strong></div>
+    {% if movie.progress %}
+      <div class="progress-bar progress-bar--small">
+        <div class="content">
+          <span class="label label--small">Paused at:</span>
+          <span class="value value--xxsmall">{{movie.progress}}%</span>
+        </div>
+        <div class="track">
+          <div class="fill" style="width: {{movie.progress}}%"></div>
+        </div>
       </div>
-      <div class="track">
-        <div class="fill" style="width: {{movie.progress}}%"></div>
-      </div>
-    </div>
-  </div>
-</div>
-{% endtemplate %}
-
-{% template upcoming_show_group %}
-<div class="flex flex--row gap--small text--left">
-  {% if show_group.tmdb_id %}
-    <img class="image image-dither w--24 h--auto" src="{{data.image_base_url}}/image/{{show_group.media_type}}/{{show_group.tmdb_id}}"/>
-  {% endif %}
-  <div class="flex flex--col flex--stretch stretch flex--top">
-    <div class="label text--left">{{show_group.show}}</div>
-    {% for ep in show_group.episodes %}
-      <div class="label label--small text--left">S{{ep.season}}E{{ep.episode}}: {{ep.title}} ({{ep.airs_at | date: "%Y-%m-%d"}})</div>
-    {% endfor %}
-  </div>
-</div>
-{% endtemplate %}
-
-{% template upcoming_movie %}
-<div class="flex flex--row gap--small text--left">
-  {% if movie.tmdb_id %}
-    <img class="image image-dither w--24 h--auto" src="{{data.image_base_url}}/image/{{movie.media_type}}/{{movie.tmdb_id}}"/>
-  {% endif %}
-  <div class="flex flex--col flex--stretch stretch flex--top">
-    <div class="label text--left">{{movie.title}} ({{movie.year}})</div>
-    <div class="label text--left">Releases: {{movie.released | date: "%Y-%m-%d" }}</div>
-  </div>
-</div>
-{% endtemplate %}
-
-{% template recommended_show %}
-<div class="flex flex--row gap--small text--left">
-  {% if show.tmdb_id %}
-    <img class="image image-dither w--24 h--auto" src="{{data.image_base_url}}/image/{{show.media_type}}/{{show.tmdb_id}}"/>
-  {% endif %}
-  <div class="flex flex--col flex--stretch stretch flex--top">
-    <div class="label text--left">{{show.title}} ({{show.year}})</div>
-    {% if show.rating %}<div class="label">★ {{show.rating}}/10</div>{% endif %}
-    {% if show.network %}<div class="label">{{show.network}}</div>{% endif %}
-  </div>
-</div>
-{% endtemplate %}
-
-{% template recommended_movie %}
-<div class="flex flex--row gap--small text--left">
-  {% if movie.tmdb_id %}
-    <img class="image image-dither w--24 h--auto" src="{{data.image_base_url}}/image/{{movie.media_type}}/{{movie.tmdb_id}}"/>
-  {% endif %}
-  <div class="flex flex--col flex--stretch stretch flex--top">
-    <div class="label text--left">{{movie.title}} ({{movie.year}})</div>
-    {% if movie.rating %}<div class="label">★ {{movie.rating}}/10</div>{% endif %}
-  </div>
-</div>
-{% endtemplate %}
-
-{% template category_section %}
-{% comment %}Renders one category section. Caller must pass: items, category, title, data, limit{% endcomment %}
-{% if items.size > 0 %}
-<div class="flex flex--col">
-  <div class="title text--left w--full">{{title}}:</div>
-  <div class="grid grid--cols-4">
-    {% if category == "continue_watching" %}
-      {% for item in items | limit: limit %}
-        {% if item.type == "show_group" %}{% render "continue_watching_show_group", show_group: item, data:data %}
-        {% elsif item.type == "movie" %}{% render "continue_watching_movie", movie: item, data:data %}{% endif %}
-      {% endfor %}
-    {% elsif category == "recently_watched" %}
-      {% for item in items | limit: limit %}
-        {% if item.type == "show_group" %}{% render "recently_watched_show_group", show_group: item, data:data %}
-        {% elsif item.type == "movie" %}{% render "recently_watched_movie", movie: item, data:data %}{% endif %}
-      {% endfor %}
-    {% elsif category == "upcoming" %}
-      {% for item in items | limit: limit %}
-        {% if item.type == "show_group" %}{% render "upcoming_show_group", show_group: item, data:data %}
-        {% elsif item.type == "movie" %}{% render "upcoming_movie", movie: item, data:data %}{% endif %}
-      {% endfor %}
-    {% elsif category == "recommended" %}
-      {% for item in items | limit: limit %}
-        {% if item.type == "show" %}{% render "recommended_show", show: item, data:data %}
-        {% elsif item.type == "movie" %}{% render "recommended_movie", movie: item, data:data %}{% endif %}
-      {% endfor %}
+    {% endif %}
+    {% if movie.genres.size > 0 %}
+      <div class="richtext m--0 w--full"><div class="content content--small text--left w--full"><i class="w--full" data-clamp="5">{{movie.genres | join: " · "}}</i></div></div>
+    {% elsif movie.overview %}
+      <div class="richtext m--0 w--full"><div class="content content--small text--left w--full"><i class="w--full" data-clamp="5">{{movie.overview}}</i></div></div>
     {% endif %}
   </div>
 </div>
-{% endif %}
+{% endtemplate %}
+
+{% template show_item %}
+<div class="flex flex--row flex--top gap--small h--full">
+  {% if show.tmdb_id %}
+    <img class="image image-dither {{img_class}}" src="{{data.image_base_url}}/image/{{show.media_type}}/{{show.tmdb_id}}"/>
+  {% endif %}
+  <div class="flex flex--col flex--top gap--none w--full">
+    <div class="label label--underline w--full text--left m--0" data-clamp="3">{{show.title}}</div>
+    <div class="label label--small w--full text--left m--0"><strong data-clamp="3">{{show.year}}{% if show.rating %} · ★ {{show.rating}}/10{% endif %}{% if show.network %} · {{show.network}}{% endif %}</strong></div>
+    {% if show.genres.size > 0 %}<div class="richtext m--0 w--full"><div class="content content--small text--left w--full"><i class="w--full" data-clamp="5">{{show.genres | join: " · "}}</i></div></div>{% endif %}
+  </div>
+</div>
 {% endtemplate %}
 
 {% template main %}
-{% comment %}show_secondary is true only from full.liquid — on smaller layouts it is unset{% endcomment %}
-{% if show_secondary and data.secondary_category %}
-  {% assign primary_limit = 4 %}
-{% else %}
-  {% assign primary_limit = 10 %}
-{% endif %}
+{% comment %}
+  Parameters from each view liquid:
+    img_class        — image size class, e.g. "w--24 h--auto"
+    cols             — grid columns at base breakpoint (default 2)
+    cols_lg          — grid columns at lg (default: cols)
+    cols_portrait    — grid columns at portrait base (default: cols)
+    cols_lg_portrait — grid columns at portrait lg (default: cols_lg)
+    items            — items per category at base breakpoint (default 4)
+    items_lg         — items per category at lg (default: items)
+    items_portrait   — items per category at portrait base (default: items)
+    items_lg_portrait — items per category at portrait lg (default: items_lg)
+    cats             — categories shown at base breakpoint (default 1)
+    cats_lg          — categories shown at lg (default: cats)
+    cats_portrait    — categories shown at portrait base (default: cats)
+    cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
+{% endcomment %}
+
+{% comment %}— Columns → build grid class —{% endcomment %}
+{% assign _cols      = cols             | default: 2       | plus: 0 %}
+{% assign _cols_lg   = cols_lg          | default: _cols    | plus: 0 %}
+{% assign _cols_p    = cols_portrait    | default: _cols    | plus: 0 %}
+{% assign _cols_lg_p = cols_lg_portrait | default: _cols_lg | plus: 0 %}
+{% assign _grid = "grid grid--cols-" | append: _cols %}
+{% unless _cols_lg   == _cols    %}{% assign _grid = _grid | append: " lg:grid--cols-"         | append: _cols_lg   %}{% endunless %}
+{% unless _cols_p == _cols and _cols_p == _cols_lg %}{% assign _grid = _grid | append: " portrait:grid--cols-" | append: _cols_p %}{% endunless %}
+{% assign _eff_cols_lg_p = _cols %}{% if _cols_lg != _cols %}{% assign _eff_cols_lg_p = _cols_lg %}{% endif %}{% unless _cols_p == _cols and _cols_p == _cols_lg %}{% assign _eff_cols_lg_p = _cols_p %}{% endunless %}
+{% unless _cols_lg_p == _eff_cols_lg_p %}{% assign _grid = _grid | append: " lg:portrait:grid--cols-" | append: _cols_lg_p %}{% endunless %}
+
+{% comment %}— Items per category —{% endcomment %}
+{% assign _items      = items             | default: 4        | plus: 0 %}
+{% assign _items_lg   = items_lg          | default: _items    | plus: 0 %}
+{% assign _items_p    = items_portrait    | default: _items    | plus: 0 %}
+{% assign _items_lg_p = items_lg_portrait | default: _items_lg | plus: 0 %}
+{% assign max_items = _items %}
+{% if _items_lg   > max_items %}{% assign max_items = _items_lg   %}{% endif %}
+{% if _items_p    > max_items %}{% assign max_items = _items_p    %}{% endif %}
+{% if _items_lg_p > max_items %}{% assign max_items = _items_lg_p %}{% endif %}
+
+{% comment %}— Categories —{% endcomment %}
+{% assign _cats      = cats             | default: 1       | plus: 0 %}
+{% assign _cats_lg   = cats_lg          | default: _cats    | plus: 0 %}
+{% assign _cats_p    = cats_portrait    | default: _cats    | plus: 0 %}
+{% assign _cats_lg_p = cats_lg_portrait | default: _cats_lg | plus: 0 %}
+{% assign _max_cats = _cats %}
+{% if _cats_lg   > _max_cats %}{% assign _max_cats = _cats_lg   %}{% endif %}
+{% if _cats_p    > _max_cats %}{% assign _max_cats = _cats_p    %}{% endif %}
+{% if _cats_lg_p > _max_cats %}{% assign _max_cats = _cats_lg_p %}{% endif %}
+
+{% comment %}— Sidebar min-height derived from image width (poster aspect ~2:3, w-N = N/4 rem) —{% endcomment %}
+{% if img_class contains 'w--' %}{% assign _img_w = img_class | split: 'w--' | last | split: ' ' | first | plus: 0 %}{% else %}{% assign _img_w = 16 %}{% endif %}
+{% assign _sidebar_minh = _img_w | times: 3 | divided_by: 8 | append: 'rem' %}
+
+{% comment %}— Priority order from user settings —{% endcomment %}
+{% assign _p1 = trmnl.plugin_settings.custom_fields_values.priority_1 | default: "continue_watching" | strip %}
+{% assign _p2 = trmnl.plugin_settings.custom_fields_values.priority_2 | default: "recently_watched"  | strip %}
+{% assign _p3 = trmnl.plugin_settings.custom_fields_values.priority_3 | default: "upcoming"          | strip %}
+{% assign _p4 = trmnl.plugin_settings.custom_fields_values.priority_4 | default: "recommended"       | strip %}
+{% assign _priority = _p1 | append: "," | append: _p2 | append: "," | append: _p3 | append: "," | append: _p4 | split: "," %}
 
 <div class="layout layout--col layout--stretch">
-  <div class="flex flex--col gap--none flex--stretch">
+  <div class="flex flex--col gap--small flex--stretch" data-overflow="true">
 
-    {% render "category_section",
-      items: data.continue_watching,
-      category: data.display_category,
-      title: data.display_title,
-      data: data,
-      limit: primary_limit %}
+    {% assign cat_n = 0 %}
+    {% assign _rendered = "" %}
+    {% for key in _priority %}
+      {% unless _rendered contains key %}
+        {% assign cat = data.categories[key] %}
+        {% if cat.items.size > 0 %}
+          {% assign cat_n = cat_n | plus: 1 %}
+          {% if cat_n <= _max_cats %}
 
-    {% render "category_section",
-      items: data.recently_watched,
-      category: data.display_category,
-      title: data.display_title,
-      data: data,
-      limit: primary_limit %}
+            {% comment %}— Category visibility class —{% endcomment %}
+            {% assign _show_sm   = false %}{% assign _show_lg   = false %}
+            {% assign _show_sm_p = false %}{% assign _show_lg_p = false %}
+            {% if cat_n <= _cats      %}{% assign _show_sm   = true %}{% endif %}
+            {% if cat_n <= _cats_lg   %}{% assign _show_lg   = true %}{% endif %}
+            {% if cat_n <= _cats_p    %}{% assign _show_sm_p = true %}{% endif %}
+            {% if cat_n <= _cats_lg_p %}{% assign _show_lg_p = true %}{% endif %}
+            {% if _show_sm %}{% assign _vis = "flex" %}{% else %}{% assign _vis = "hidden" %}{% endif %}
+            {% unless _show_lg   == _show_sm   %}{% if _show_lg   %}{% assign _vis = _vis | append: " lg:flex"            %}{% else %}{% assign _vis = _vis | append: " lg:hidden"            %}{% endif %}{% endunless %}
+            {% unless _show_sm_p == _show_sm and _show_sm_p == _show_lg %}{% if _show_sm_p %}{% assign _vis = _vis | append: " portrait:flex"      %}{% else %}{% assign _vis = _vis | append: " portrait:hidden"      %}{% endif %}{% endunless %}
+            {% assign _eff_vis_lg_p = _show_sm %}{% if _show_lg != _show_sm %}{% assign _eff_vis_lg_p = _show_lg %}{% endif %}{% unless _show_sm_p == _show_sm and _show_sm_p == _show_lg %}{% assign _eff_vis_lg_p = _show_sm_p %}{% endunless %}
+            {% unless _show_lg_p == _eff_vis_lg_p %}{% if _show_lg_p %}{% assign _vis = _vis | append: " lg:portrait:flex"   %}{% else %}{% assign _vis = _vis | append: " lg:portrait:hidden"   %}{% endif %}{% endunless %}
 
-    {% render "category_section",
-      items: data.upcoming,
-      category: data.display_category,
-      title: data.display_title,
-      data: data,
-      limit: primary_limit %}
+            <div class="{{_vis}} flex--row" style="align-items:flex-start;border:2px solid #000;box-shadow:4px 4px 0 0 #000;">
+              <div class="bg--black text--white" style="writing-mode:vertical-rl;transform:rotate(180deg);letter-spacing:0.1em;font-weight:700;padding:0.5rem 0.75rem;display:flex;align-items:center;justify-content:center;min-height:{{_sidebar_minh}};">{{cat.title | upcase | replace: ' ', '<br>'}}</div>
+              <div class="{{_grid}}" style="overflow:hidden;flex:1;min-width:0;padding:0.25rem">
+                {% assign cat_items = cat.items %}
+                {% for item in cat_items | limit: max_items %}
 
-    {% render "category_section",
-      items: data.recommended,
-      category: data.display_category,
-      title: data.display_title,
-      data: data,
-      limit: primary_limit %}
+                  {% comment %}— Item visibility class —{% endcomment %}
+                  {% assign _i_sm   = false %}{% assign _i_lg   = false %}
+                  {% assign _i_sm_p = false %}{% assign _i_lg_p = false %}
+                  {% if forloop.index <= _items      %}{% assign _i_sm   = true %}{% endif %}
+                  {% if forloop.index <= _items_lg   %}{% assign _i_lg   = true %}{% endif %}
+                  {% if forloop.index <= _items_p    %}{% assign _i_sm_p = true %}{% endif %}
+                  {% if forloop.index <= _items_lg_p %}{% assign _i_lg_p = true %}{% endif %}
+                  {% if _i_sm %}{% assign _ic = "" %}{% else %}{% assign _ic = "hidden" %}{% endif %}
+                  {% unless _i_lg   == _i_sm   %}{% if _i_lg   %}{% assign _ic = _ic | append: " lg:block"            %}{% else %}{% assign _ic = _ic | append: " lg:hidden"            %}{% endif %}{% endunless %}
+                  {% unless _i_sm_p == _i_sm   %}{% if _i_sm_p %}{% assign _ic = _ic | append: " portrait:block"      %}{% else %}{% assign _ic = _ic | append: " portrait:hidden"      %}{% endif %}{% endunless %}
+                  {% assign _eff_i_lg_p = _i_sm %}{% if _i_lg != _i_sm %}{% assign _eff_i_lg_p = _i_lg %}{% endif %}{% if _i_sm_p != _i_sm %}{% assign _eff_i_lg_p = _i_sm_p %}{% endif %}
+                  {% unless _i_lg_p == _eff_i_lg_p %}{% if _i_lg_p %}{% assign _ic = _ic | append: " lg:portrait:block"   %}{% else %}{% assign _ic = _ic | append: " lg:portrait:hidden"   %}{% endif %}{% endunless %}
+                  {% assign _ic = _ic | strip %}
 
-    {% if show_secondary and data.secondary_category %}
-      {% render "category_section",
-        items: data.secondary_continue_watching,
-        category: data.secondary_category,
-        title: data.secondary_title,
-        data: data,
-        limit: 4 %}
+                  <div class="h--full{% if _ic != "" %} {{_ic}}{% endif %}">
+                    {% if item.type == "show_group" %}{% render "show_group_item", show_group: item, data: data, img_class: img_class %}
+                    {% elsif item.type == "movie" %}{% render "movie_item", movie: item, data: data, img_class: img_class %}
+                    {% elsif item.type == "show" %}{% render "show_item", show: item, data: data, img_class: img_class %}
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
 
-      {% render "category_section",
-        items: data.secondary_recently_watched,
-        category: data.secondary_category,
-        title: data.secondary_title,
-        data: data,
-        limit: 4 %}
-
-      {% render "category_section",
-        items: data.secondary_upcoming,
-        category: data.secondary_category,
-        title: data.secondary_title,
-        data: data,
-        limit: 4 %}
-
-      {% render "category_section",
-        items: data.secondary_recommended,
-        category: data.secondary_category,
-        title: data.secondary_title,
-        data: data,
-        limit: 4 %}
-    {% endif %}
+            {% assign _rendered = _rendered | append: key | append: "," %}
+          {% endif %}
+        {% endif %}
+      {% endunless %}
+    {% endfor %}
 
   </div>
 </div>

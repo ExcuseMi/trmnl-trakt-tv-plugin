@@ -12,3 +12,4 @@ custom_fields: {}
 # override variables
 variables:
   trmnl: {}
+  data:

@@ -4,7 +4,7 @@ no_screen_padding: 'no'
 dark_mode: 'no'
 static_data: ''
 polling_verb: get
-polling_url: "{% liquid\r\n  assign today = \"now\" | date: \"%Y-%m-%d\"\r\n  assign raw_cats = trmnl.plugin_settings.custom_fields_values.categories | default: \"continue_watching\"\r\n  assign cleaned_cats = raw_cats | replace: '[', '' | replace: ']', '' | replace: '\"', '' | strip\r\n  assign cats_array = cleaned_cats | split: \",\"\r\n  assign count = cats_array.size\r\n  assign seed = \"now\" | date: \"%s\" | plus: 0\r\n  assign primary_idx = seed | modulo: count\r\n  assign secondary_idx = primary_idx | plus: 1 | modulo: count\r\n  assign primary = cats_array[primary_idx] | strip\r\n  assign secondary = cats_array[secondary_idx] | strip\r\n%}\r\n{% if primary == \"continue_watching\" %}\r\nhttps://api.trakt.tv/sync/playback/episodes?extended=full\r\nhttps://api.trakt.tv/sync/playback/movies?extended=full\r\n{% elsif primary == \"recently_watched\" %}\r\nhttps://api.trakt.tv/sync/history/episodes?page=1&limit=10&extended=full\r\nhttps://api.trakt.tv/sync/history/movies?page=1&limit=10&extended=full\r\n{% elsif primary == \"upcoming\" %}\r\nhttps://api.trakt.tv/calendars/my/shows/{{today}}/7?extended=full\r\nhttps://api.trakt.tv/calendars/my/movies/{{today}}/30?extended=full\r\n{% elsif primary == \"recommended\" %}\r\nhttps://api.trakt.tv/recommendations/shows?limit=10&extended=full\r\nhttps://api.trakt.tv/recommendations/movies?limit=10&extended=full\r\n{% endif %}\r\n{% if count > 1 %}\r\n{% if secondary == \"continue_watching\" %}\r\nhttps://api.trakt.tv/sync/playback/episodes?extended=full\r\nhttps://api.trakt.tv/sync/playback/movies?extended=full\r\n{% elsif secondary == \"recently_watched\" %}\r\nhttps://api.trakt.tv/sync/history/episodes?page=1&limit=10&extended=full\r\nhttps://api.trakt.tv/sync/history/movies?page=1&limit=10&extended=full\r\n{% elsif secondary == \"upcoming\" %}\r\nhttps://api.trakt.tv/calendars/my/shows/{{today}}/7?extended=full\r\nhttps://api.trakt.tv/calendars/my/movies/{{today}}/30?extended=full\r\n{% elsif secondary == \"recommended\" %}\r\nhttps://api.trakt.tv/recommendations/shows?limit=10&extended=full\r\nhttps://api.trakt.tv/recommendations/movies?limit=10&extended=full\r\n{% endif %}\r\n{% endif %}"
+polling_url: "{% assign today = \"now\" | date: \"%Y-%m-%d\" %}\r\nhttps://api.trakt.tv/sync/playback/episodes?extended=full\r\nhttps://api.trakt.tv/sync/playback/movies?extended=full\r\nhttps://api.trakt.tv/sync/history/episodes?page=1&limit=10&extended=full\r\nhttps://api.trakt.tv/sync/history/movies?page=1&limit=10&extended=full\r\nhttps://api.trakt.tv/calendars/my/shows/{{today}}/7?extended=full\r\nhttps://api.trakt.tv/calendars/my/movies/{{today}}/30?extended=full\r\nhttps://api.trakt.tv/recommendations/shows?limit=10&extended=full\r\nhttps://api.trakt.tv/recommendations/movies?limit=10&extended=full"
 polling_headers: Authorization=Bearer {{ oauth_access_token }}&Content-Type=application/json&trakt-api-version=2&trakt-api-key=15f86bdc5ed8f3d2ea229efc956d6fda8e291a0f5df637f68e55b4c4b65b99e7
 polling_body: ''
 id: 245666
@@ -18,17 +18,45 @@ custom_fields:
   category: entertainment
   github_url: https://github.com/ExcuseMi/trmnl-trakt-tv-plugin
   learn_more_url: https://trakt.tv/
-- keyname: categories
+- keyname: priority_1
   field_type: select
-  name: Categories to Display
-  description: Pick which categories to show. On each refresh, one is chosen at random from your selection.
+  name: 1st Category
+  description: Category shown in the first position.
   options:
   - Continue Watching: continue_watching
   - Recently Watched: recently_watched
   - Upcoming: upcoming
   - Recommended: recommended
-  multiple: true
   default: continue_watching
-  help_text: Use <kbd>⌘</kbd>+<kbd>click</kbd> or <kbd>ctrl</kbd>+<kbd>click</kbd> to select and deselect multiple options.
+- keyname: priority_2
+  field_type: select
+  name: 2nd Category
+  description: Category shown in the second position.
+  options:
+  - Continue Watching: continue_watching
+  - Recently Watched: recently_watched
+  - Upcoming: upcoming
+  - Recommended: recommended
+  default: recently_watched
+- keyname: priority_3
+  field_type: select
+  name: 3rd Category
+  description: Category shown in the third position.
+  options:
+  - Continue Watching: continue_watching
+  - Recently Watched: recently_watched
+  - Upcoming: upcoming
+  - Recommended: recommended
+  default: upcoming
+- keyname: priority_4
+  field_type: select
+  name: 4th Category
+  description: Category shown in the fourth position.
+  options:
+  - Continue Watching: continue_watching
+  - Recently Watched: recently_watched
+  - Upcoming: upcoming
+  - Recommended: recommended
+  default: recommended
 name: Trakt.tv
 refresh_interval: 1440
