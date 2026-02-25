@@ -65,5 +65,5 @@ custom_fields:
   description: Display poster art alongside each item.
   default: true
   optional: true
-name: Trakt.tv
+name: Trakt
 refresh_interval: 1440

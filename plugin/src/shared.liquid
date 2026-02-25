@@ -158,9 +158,9 @@
             {% assign _eff_vis_lg_p = _show_sm %}{% if _show_lg != _show_sm %}{% assign _eff_vis_lg_p = _show_lg %}{% endif %}{% unless _show_sm_p == _show_sm and _show_sm_p == _show_lg %}{% assign _eff_vis_lg_p = _show_sm_p %}{% endunless %}
             {% unless _show_lg_p == _eff_vis_lg_p %}{% if _show_lg_p %}{% assign _vis = _vis | append: " lg:portrait:flex"   %}{% else %}{% assign _vis = _vis | append: " lg:portrait:hidden"   %}{% endif %}{% endunless %}
 
-            <div class="{{_vis}} flex--row pt--0_5" style="align-items:flex-start;border:2px solid #000;box-shadow:4px 4px 0 0 #000;">
+            <div class="{{_vis}} flex--row p--0" style="align-items:flex-start;border:2px solid #000;box-shadow:4px 4px 0 0 #000;">
               <div class="bg--black text--white p--0_5 pb--2 pt--2" style="writing-mode:vertical-rl;transform:rotate(180deg);letter-spacing:0.1em;font-weight:700;display:flex;align-items:center;justify-content:center;min-height:{{_sidebar_minh}};">{{cat.title | upcase | replace: ' ', '<br>'}}</div>
-              <div class="{{_grid}} p--0_5 w--min-0" style="overflow:hidden;flex:1;">
+              <div class="{{_grid}} w--min-0" style="overflow:hidden;flex:1;">
                 {% assign cat_items = cat.items %}
                 {% for item in cat_items | limit: max_items %}
 
@@ -199,6 +199,6 @@
 
 <div class="title_bar">
   <img class="image image-dither rounded" src="https://raw.githubusercontent.com/Taxel/PlexTraktSync/refs/heads/main/trakt.ico">
-  <span class="title">Trakt.tv</span>
+  <span class="title">{{ trmnl.plugin_settings.instance_name | default: "Trakt"}}</span>
 </div>
 {% endtemplate %}
