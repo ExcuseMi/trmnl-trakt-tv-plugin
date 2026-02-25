@@ -18,6 +18,7 @@ custom_fields:
   category: entertainment
   github_url: https://github.com/ExcuseMi/trmnl-trakt-tv-plugin
   learn_more_url: https://trakt.tv/
+  help_text: TRMNL X Ready
 - keyname: priority_1
   field_type: select
   name: 1st Category
