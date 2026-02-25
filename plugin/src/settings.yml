@@ -26,7 +26,7 @@ custom_fields:
   - Continue Watching: continue_watching
   - Recently Watched: recently_watched
   - Upcoming: upcoming
-  - Recommended: recommended
+  - Picks: recommended
   default: continue_watching
 - keyname: priority_2
   field_type: select
@@ -36,7 +36,7 @@ custom_fields:
   - Continue Watching: continue_watching
   - Recently Watched: recently_watched
   - Upcoming: upcoming
-  - Recommended: recommended
+  - Picks: recommended
   default: recently_watched
 - keyname: priority_3
   field_type: select
@@ -46,7 +46,7 @@ custom_fields:
   - Continue Watching: continue_watching
   - Recently Watched: recently_watched
   - Upcoming: upcoming
-  - Recommended: recommended
+  - Picks: recommended
   default: upcoming
 - keyname: priority_4
   field_type: select
@@ -56,7 +56,13 @@ custom_fields:
   - Continue Watching: continue_watching
   - Recently Watched: recently_watched
   - Upcoming: upcoming
-  - Recommended: recommended
+  - Picks: recommended
   default: recommended
+- keyname: show_images
+  field_type: boolean
+  name: Show Images
+  description: Display poster art alongside each item.
+  default: true
+  optional: true
 name: Trakt.tv
 refresh_interval: 1440
