@@ -8,7 +8,7 @@
     {% for ep in show_group.episodes | limit: 3 %}
       <div class="label label--small w--full text--left m--0"><strong data-clamp="3">S{{ep.season}}E{{ep.episode}}: {{ep.title}}{% if ep.progress %} ({{ep.progress}}%){% endif %}{% if ep.airs_at %} ({{ep.airs_at | date: "%b %-d"}}){% endif %}</strong></div>
       {% if show_group.episodes.size == 1 and ep.overview %}
-        <div class="richtext m--0"><div class="content content--small text--left"><p><i data-clamp="5">{{ep.overview}}</i></p></div></div>
+        <div class="richtext m--0"><div class="content content--small text--left"><p><i data-clamp="{{desc_clamp}}" data-clamp-lg="{{desc_clamp_lg}}" data-clamp-portrait="{{desc_clamp_portrait}}" data-clamp-lg-portrait="{{desc_clamp_lg_portrait}}">{{ep.overview}}</i></p></div></div>
       {% endif %}
     {% endfor %}
   </div>
@@ -22,7 +22,7 @@
   {% endif %}
   <div class="flex flex--col flex--top gap--none w--full">
     <div class="label label--underline w--full text--left m--0" data-clamp="3">{{movie.title}}</div>
-    <div class="label label--small w--full text--left m--0" ><strong data-clamp="3">{{movie.year}}{% unless movie.progress %}{% if movie.watched_at %} · {{movie.watched_at | date: "%b %-d"}}{% elsif movie.released %} · {{movie.released | date: "%b %-d"}}{% elsif movie.rating %} · ★ {{movie.rating}}/10{% endif %}{% endunless %}</strong></div>
+    <div class="label label--small w--full text--left m--0" ><strong data-clamp="3">{{movie.year}}{% if movie.genres.size > 0 %} · Movie{% endif %}{% unless movie.progress %}{% if movie.watched_at %} · {{movie.watched_at | date: "%b %-d"}}{% elsif movie.released %} · {{movie.released | date: "%b %-d"}}{% elsif movie.rating %} · ★ {{movie.rating}}/10{% endif %}{% endunless %}{% for g in movie.genres limit: 2 %} · {{g}}{% endfor %}</strong></div>
     {% if movie.progress %}
       <div class="progress-bar progress-bar--small">
         <div class="content">
@@ -34,10 +34,8 @@
         </div>
       </div>
     {% endif %}
-    {% if movie.genres.size > 0 %}
-      <div class="richtext m--0 w--full"><div class="content content--small text--left w--full"><i class="w--full" data-clamp="5">{{movie.genres | join: " · "}}</i></div></div>
-    {% elsif movie.overview %}
-      <div class="richtext m--0 w--full"><div class="content content--small text--left w--full"><i class="w--full" data-clamp="5">{{movie.overview}}</i></div></div>
+    {% if movie.overview %}
+      <div class="richtext m--0 w--full"><div class="content content--small text--left w--full"><i class="w--full" data-clamp="{{desc_clamp}}" data-clamp-lg="{{desc_clamp_lg}}" data-clamp-portrait="{{desc_clamp_portrait}}" data-clamp-lg-portrait="{{desc_clamp_lg_portrait}}">{{movie.overview}}</i></div></div>
     {% endif %}
   </div>
 </div>
@@ -50,8 +48,8 @@
   {% endif %}
   <div class="flex flex--col flex--top gap--none w--full">
     <div class="label label--underline w--full text--left m--0" data-clamp="3">{{show.title}}</div>
-    <div class="label label--small w--full text--left m--0"><strong data-clamp="3">{{show.year}}{% if show.rating %} · ★ {{show.rating}}/10{% endif %}{% if show.network %} · {{show.network}}{% endif %}</strong></div>
-    {% if show.genres.size > 0 %}<div class="richtext m--0 w--full"><div class="content content--small text--left w--full"><i class="w--full" data-clamp="5">{{show.genres | join: " · "}}</i></div></div>{% endif %}
+    <div class="label label--small w--full text--left m--0"><strong data-clamp="3">{{show.year}}{% if show.genres.size > 0 %} · Show{% endif %}{% if show.rating %} · ★ {{show.rating}}/10{% endif %}{% if show.network %} · {{show.network}}{% endif %}{% for g in show.genres limit: 2 %} · {{g}}{% endfor %}</strong></div>
+    {% if show.overview %}<div class="richtext m--0 w--full"><div class="content content--small text--left w--full"><i class="w--full" data-clamp="{{desc_clamp}}" data-clamp-lg="{{desc_clamp_lg}}" data-clamp-portrait="{{desc_clamp_portrait}}" data-clamp-lg-portrait="{{desc_clamp_lg_portrait}}">{{show.overview}}</i></div></div>{% endif %}
   </div>
 </div>
 {% endtemplate %}
@@ -104,6 +102,12 @@
 {% if _cats_lg   > _max_cats %}{% assign _max_cats = _cats_lg   %}{% endif %}
 {% if _cats_p    > _max_cats %}{% assign _max_cats = _cats_p    %}{% endif %}
 {% if _cats_lg_p > _max_cats %}{% assign _max_cats = _cats_lg_p %}{% endif %}
+
+{% comment %}— Description clamp —{% endcomment %}
+{% assign _dc    = desc_clamp             | default: 3 %}
+{% assign _dc_lg = desc_clamp_lg          | default: _dc %}
+{% assign _dc_p  = desc_clamp_portrait    | default: _dc %}
+{% assign _dc_lp = desc_clamp_lg_portrait | default: _dc_lg %}
 
 {% comment %}— Sidebar min-height derived from image width (poster aspect ~2:3, w-N = N/4 rem) —{% endcomment %}
 {% if img_class contains 'w--' %}{% assign _img_w = img_class | split: 'w--' | last | split: ' ' | first | plus: 0 %}{% else %}{% assign _img_w = 16 %}{% endif %}
@@ -162,9 +166,9 @@
                   {% assign _ic = _ic | strip %}
 
                   <div class="h--full{% if _ic != "" %} {{_ic}}{% endif %}">
-                    {% if item.type == "show_group" %}{% render "show_group_item", show_group: item, data: data, img_class: img_class %}
-                    {% elsif item.type == "movie" %}{% render "movie_item", movie: item, data: data, img_class: img_class %}
-                    {% elsif item.type == "show" %}{% render "show_item", show: item, data: data, img_class: img_class %}
+                    {% if item.type == "show_group" %}{% render "show_group_item", show_group: item, data: data, img_class: img_class, desc_clamp: _dc, desc_clamp_lg: _dc_lg, desc_clamp_portrait: _dc_p, desc_clamp_lg_portrait: _dc_lp %}
+                    {% elsif item.type == "movie" %}{% render "movie_item", movie: item, data: data, img_class: img_class, desc_clamp: _dc, desc_clamp_lg: _dc_lg, desc_clamp_portrait: _dc_p, desc_clamp_lg_portrait: _dc_lp %}
+                    {% elsif item.type == "show" %}{% render "show_item", show: item, data: data, img_class: img_class, desc_clamp: _dc, desc_clamp_lg: _dc_lg, desc_clamp_portrait: _dc_p, desc_clamp_lg_portrait: _dc_lp %}
                     {% endif %}
                   </div>
                 {% endfor %}

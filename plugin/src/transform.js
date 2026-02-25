@@ -99,6 +99,7 @@ function transform(input) {
       recommendedShowsSeen.set(item.title, {
         type: 'show', title: item.title, year: item.year,
         genres: item.genres || [],
+        overview: item.overview || null,
         rating: item.rating ? Math.round(item.rating * 10) / 10 : null,
         network: item.network,
         tmdb_id: item.ids?.tmdb || null, media_type: 'show',
@@ -112,6 +113,7 @@ function transform(input) {
       recommendedMoviesSeen.set(key, {
         type: 'movie', title: item.title, year: item.year,
         genres: item.genres || [],
+        overview: item.overview || null,
         rating: item.rating ? Math.round(item.rating * 10) / 10 : null,
         tmdb_id: item.ids?.tmdb || null, media_type: 'movie',
       });
