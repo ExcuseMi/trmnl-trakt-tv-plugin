@@ -109,68 +109,107 @@
 </div>
 {% endtemplate %}
 
+{% template category_section %}
+{% comment %}Renders one category section. Caller must pass: items, category, title, data, limit{% endcomment %}
+{% if items.size > 0 %}
+<div class="flex flex--col">
+  <div class="title text--left w--full">{{title}}:</div>
+  <div class="grid grid--cols-4">
+    {% if category == "continue_watching" %}
+      {% for item in items | limit: limit %}
+        {% if item.type == "show_group" %}{% render "continue_watching_show_group", show_group: item, data:data %}
+        {% elsif item.type == "movie" %}{% render "continue_watching_movie", movie: item, data:data %}{% endif %}
+      {% endfor %}
+    {% elsif category == "recently_watched" %}
+      {% for item in items | limit: limit %}
+        {% if item.type == "show_group" %}{% render "recently_watched_show_group", show_group: item, data:data %}
+        {% elsif item.type == "movie" %}{% render "recently_watched_movie", movie: item, data:data %}{% endif %}
+      {% endfor %}
+    {% elsif category == "upcoming" %}
+      {% for item in items | limit: limit %}
+        {% if item.type == "show_group" %}{% render "upcoming_show_group", show_group: item, data:data %}
+        {% elsif item.type == "movie" %}{% render "upcoming_movie", movie: item, data:data %}{% endif %}
+      {% endfor %}
+    {% elsif category == "recommended" %}
+      {% for item in items | limit: limit %}
+        {% if item.type == "show" %}{% render "recommended_show", show: item, data:data %}
+        {% elsif item.type == "movie" %}{% render "recommended_movie", movie: item, data:data %}{% endif %}
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endtemplate %}
+
 {% template main %}
+{% comment %}show_secondary is true only from full.liquid — on smaller layouts it is unset{% endcomment %}
+{% if show_secondary and data.secondary_category %}
+  {% assign primary_limit = 4 %}
+{% else %}
+  {% assign primary_limit = 10 %}
+{% endif %}
+
 <div class="layout layout--col layout--stretch">
-  <div class="flex flex--col gap--none flex--stretch ">
-    {% if data.continue_watching.size > 0 %}
-    <div class="flex flex--col">
-      <div class="title text--left w--full">Continue Watching:</div>
-      <div class="grid grid--cols-4">
-        {% for item in data.continue_watching | limit: 4  %}
-        {% if item.type == "show_group" %}
-        {% render "continue_watching_show_group", show_group: item, data:data %}
-        {% elsif item.type == "movie" %}
-        {% render "continue_watching_movie", movie: item, data:data %}
-        {% endif %}
-        {% endfor %}
-      </div>
-    </div>
+  <div class="flex flex--col gap--none flex--stretch">
+
+    {% render "category_section",
+      items: data.continue_watching,
+      category: data.display_category,
+      title: data.display_title,
+      data: data,
+      limit: primary_limit %}
+
+    {% render "category_section",
+      items: data.recently_watched,
+      category: data.display_category,
+      title: data.display_title,
+      data: data,
+      limit: primary_limit %}
+
+    {% render "category_section",
+      items: data.upcoming,
+      category: data.display_category,
+      title: data.display_title,
+      data: data,
+      limit: primary_limit %}
+
+    {% render "category_section",
+      items: data.recommended,
+      category: data.display_category,
+      title: data.display_title,
+      data: data,
+      limit: primary_limit %}
+
+    {% if show_secondary and data.secondary_category %}
+      {% render "category_section",
+        items: data.secondary_continue_watching,
+        category: data.secondary_category,
+        title: data.secondary_title,
+        data: data,
+        limit: 4 %}
+
+      {% render "category_section",
+        items: data.secondary_recently_watched,
+        category: data.secondary_category,
+        title: data.secondary_title,
+        data: data,
+        limit: 4 %}
+
+      {% render "category_section",
+        items: data.secondary_upcoming,
+        category: data.secondary_category,
+        title: data.secondary_title,
+        data: data,
+        limit: 4 %}
+
+      {% render "category_section",
+        items: data.secondary_recommended,
+        category: data.secondary_category,
+        title: data.secondary_title,
+        data: data,
+        limit: 4 %}
     {% endif %}
 
-    {% if data.recently_watched.size > 0 %}
-    <div class="flex flex--col">
-      <div class="title text--left w--full">Recently Watched:</div>
-      <div class="grid grid--cols-4">
-        {% for item in data.recently_watched | limit: 4  %}
-        {% if item.type == "show_group" %}
-        {% render "recently_watched_show_group", show_group: item, data:data %}
-        {% elsif item.type == "movie" %}
-        {% render "recently_watched_movie", movie: item, data:data %}
-        {% endif %}
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-    {% if data.upcoming.size > 0 %}
-    <div class="flex flex--col">
-      <div class="title text--left w--full">Upcoming:</div>
-      <div class="grid grid--cols-4">
-        {% for item in data.upcoming | limit: 4  %}
-        {% if item.type == "show_group" %}
-        {% render "upcoming_show_group", show_group: item, data:data %}
-        {% elsif item.type == "movie" %}
-        {% render "upcoming_movie", movie: item, data:data %}
-        {% endif %}
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-    {% if data.recommended.size > 0 %}
-    <div class="flex flex--col">
-      <div class="title text--left w--full">Recommended For You:</div>
-      <div class="grid grid--cols-4">
-        {% for item in data.recommended | limit: 4 %}
-        {% if item.type == "show" %}
-        {% render "recommended_show", show: item, data:data %}
-        {% elsif item.type == "movie" %}
-        {% render "recommended_movie", movie: item, data:data %}
-        {% endif %}
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
   </div>
 </div>
 
