@@ -125,8 +125,8 @@ cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
 {% assign _p4 = trmnl.plugin_settings.custom_fields_values.priority_4 | default: "recommended"       | strip %}
 {% assign _priority = _p1 | append: "," | append: _p2 | append: "," | append: _p3 | append: "," | append: _p4 | split: "," %}
 
-<div class="layout layout--col">
-  <div class="flex flex--col gap--small h--full" data-overflow="true">
+<div class="layout layout--col m--0 p--0 layout--stretch">
+  <div class="flex flex--col gap--none  h--full" data-overflow="true">
 
     {% assign _rendered = "" %}
     {% for key in _priority %}
@@ -134,7 +134,7 @@ cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
     {% assign cat = data.categories[key] %}
     {% if cat.items.size > 0 %}
 
-    <div class="item h--min-40" style="flex-grow:0;align-items:stretch;border:2px solid #000;box-shadow:4px 4px 0 0 #000;">
+    <div class="item h--min-40 m--1" style="flex-grow:0;align-items:stretch;border:2px solid #000;box-shadow:4px 4px 0 0 #000;">
       <div class="meta w--6 bg--black" style="writing-mode:vertical-lr;letter-spacing:0.1em;font-weight:700;text-align:center;flex-shrink:0;color:white;background-color:black;margin:4px 0;">{{cat.title | upcase | replace: ' ', '<br>'}}</div>
       <div class="flex flex--row p--1 stretch" >
 
