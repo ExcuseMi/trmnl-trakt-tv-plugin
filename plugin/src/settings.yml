@@ -4,8 +4,8 @@ no_screen_padding: 'no'
 dark_mode: 'no'
 static_data: ''
 polling_verb: get
-polling_url: "{% assign today_ts = trmnl.system.timestamp_utc | plus: trmnl.user.utc_offset %}\r\n{% assign today = today_ts | date: \"%Y-%m-%d\" %}\r\nhttps://api.trakt.tv/sync/playback/episodes?extended=full\r\nhttps://api.trakt.tv/sync/playback/movies?extended=full\r\nhttps://api.trakt.tv/sync/history/episodes?page=1&limit=10&extended=full\r\nhttps://api.trakt.tv/sync/history/movies?page=1&limit=10&extended=full\r\nhttps://api.trakt.tv/calendars/my/shows/{{today}}/7?extended=full\r\nhttps://api.trakt.tv/calendars/my/movies/{{today}}/30?extended=full\r\nhttps://api.trakt.tv/recommendations/shows?limit=10&extended=full\r\nhttps://api.trakt.tv/recommendations/movies?limit=10&extended=full"
-polling_headers: Authorization=Bearer%20{{ oauth_access_token }}&Content-Type=application/json&trakt-api-version=2&trakt-api-key=15f86bdc5ed8f3d2ea229efc956d6fda8e291a0f5df637f68e55b4c4b65b99e7
+polling_url: "{% assign today_ts = trmnl.system.timestamp_utc | plus: trmnl.user.utc_offset %}\r\n{% assign today = today_ts | date: \"%Y-%m-%d\" %}\r\n{% assign _p1 = trmnl.plugin_settings.custom_fields_values.priority_1 | default: \"continue_watching\" %}\r\n{% assign _p2 = trmnl.plugin_settings.custom_fields_values.priority_2 | default: \"recently_watched\" %}\r\n{% assign _p3 = trmnl.plugin_settings.custom_fields_values.priority_3 | default: \"upcoming\" %}\r\n{% assign _p4 = trmnl.plugin_settings.custom_fields_values.priority_4 | default: \"recommended\" %}\r\n{% assign _cats = _p1 | append: \",\" | append: _p2 | append: \",\" | append: _p3 | append: \",\" | append: _p4 | split: \",\" %}\r\n{% assign _seen = \"\" %}\r\n{% for _cat in _cats %}{% unless _seen contains _cat %}{% assign _seen = _seen | append: _cat | append: \",\" %}{% if _cat == \"continue_watching\" %}\r\nhttps://api.trakt.tv/sync/playback/episodes?extended=full\r\nhttps://api.trakt.tv/sync/playback/movies?extended=full{% elsif _cat == \"recently_watched\" %}\r\nhttps://api.trakt.tv/sync/history/episodes?page=1&limit=10&extended=full\r\nhttps://api.trakt.tv/sync/history/movies?page=1&limit=10&extended=full{% elsif _cat == \"upcoming\" %}\r\nhttps://api.trakt.tv/calendars/my/shows/{{ today }}/7?extended=full\r\nhttps://api.trakt.tv/calendars/my/movies/{{ today }}/30?extended=full{% elsif _cat == \"recommended\" %}\r\nhttps://api.trakt.tv/recommendations/shows?limit=10&extended=full\r\nhttps://api.trakt.tv/recommendations/movies?limit=10&extended=full{% elsif _cat == \"watchlist\" %}\r\nhttps://api.trakt.tv/users/me/watchlist/shows?extended=full\r\nhttps://api.trakt.tv/users/me/watchlist/movies?extended=full{% elsif _cat == \"collection\" %}\r\nhttps://api.trakt.tv/users/me/collection/shows?extended=full\r\nhttps://api.trakt.tv/users/me/collection/movies?extended=full{% endif %}{% endunless %}{% endfor %}"
+polling_headers: Authorization=Bearer%20{{ oauth_access_token }}&Content-Type=application/json&trakt-api-version=2&trakt-api-key={{ oauth_client_id }}
 polling_body: ''
 id: 245666
 custom_fields:
@@ -13,7 +13,7 @@ custom_fields:
   field_type: author_bio
   name: About This Plugin
   description: |
-    Track your Trakt.tv activity — shows in progress, recent watches, upcoming episodes and movies, and personalised recommendations — right on your TRMNL device.<br /><br />
+    Track your Trakt.tv activity right on your TRMNL device. Choose up to 4 categories from: Continue Watching, Recently Watched, Upcoming, Picks, Watchlist, and Collection — in any order you like.<br /><br />
     <strong>Requires Trakt.tv OAuth</strong>
   category: entertainment
   github_url: https://github.com/ExcuseMi/trmnl-trakt-tv-plugin
@@ -28,6 +28,9 @@ custom_fields:
   - Recently Watched: recently_watched
   - Upcoming: upcoming
   - Picks: recommended
+  - Watchlist: watchlist
+  - Collection: collection
+  - None: none
   default: continue_watching
 - keyname: priority_2
   field_type: select
@@ -38,6 +41,9 @@ custom_fields:
   - Recently Watched: recently_watched
   - Upcoming: upcoming
   - Picks: recommended
+  - Watchlist: watchlist
+  - Collection: collection
+  - None: none
   default: recently_watched
 - keyname: priority_3
   field_type: select
@@ -48,6 +54,9 @@ custom_fields:
   - Recently Watched: recently_watched
   - Upcoming: upcoming
   - Picks: recommended
+  - Watchlist: watchlist
+  - Collection: collection
+  - None: none
   default: upcoming
 - keyname: priority_4
   field_type: select
@@ -58,6 +67,9 @@ custom_fields:
   - Recently Watched: recently_watched
   - Upcoming: upcoming
   - Picks: recommended
+  - Watchlist: watchlist
+  - Collection: collection
+  - None: none
   default: recommended
 - keyname: show_images
   field_type: boolean
