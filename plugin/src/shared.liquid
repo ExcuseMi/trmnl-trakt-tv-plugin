@@ -1,3 +1,25 @@
+{% template date %}
+{% liquid
+assign now_timestamp = trmnl.system.timestamp_utc
+assign timestamp = datetime | date: "%s" | plus: 0
+assign timezone_offset = trmnl.user.utc_offset | default: 0
+
+assign today = now_timestamp | date: "%Y-%m-%d"
+assign timestamp_day = timestamp | date: "%Y-%m-%d"
+assign year = timestamp | date: "%Y"
+assign current_year = now_timestamp | date: "%Y"
+%}
+{% if today == timestamp_day %}
+{% assign format = trmnl.plugin_settings.custom_fields_values.time_format | default: "%I:%M %p" %}
+{{ timestamp | plus: timezone_offset | date: format }}
+{% elsif year == current_year %}
+{{ timestamp | date: "%b %-d" }}
+{% else %}
+{% assign format =  trmnl.plugin_settings.custom_fields_values.date_format | default: "%m/%d/%Y" %}
+{{ timestamp | date: format }}:
+{% endif %}
+{% endtemplate %}
+
 {% template show_group_item %}
 <div class="flex flex--row flex--top gap--small show_group_item">
   {% if show_group.image_url and show_images != "false" %}
@@ -13,37 +35,11 @@
     {% for ep in season.episodes | limit: 3 %}
     <div class="label label--small w--full text--left m--0"><strong data-clamp="3">
       {% if ep.airs_at %}
-      {% liquid
-      assign now_timestamp = trmnl.system.timestamp_utc
-      assign timestamp = ep.airs_at | date: "%s" | plus: 0
-      assign timezone_offset = trmnl.user.utc_offset | default: 0
-
-      assign today = now_timestamp | date: "%Y-%m-%d"
-      assign timestamp_day = timestamp | date: "%Y-%m-%d"
-      %}
-      {% if today == timestamp_day %}
-      {% assign format = trmnl.plugin_settings.custom_fields_values.time_format | default: "%I:%M %p" %}
-      {{ timestamp | plus: timezone_offset | date: format }}:
-      {% else %}
-      {{ timestamp | date: "%b %-d" }}:
-      {% endif %}
+      {% render "date": datetime: ep.airs_at, trmnl:trmnl %}:
       {% endif %}
       S{{season.number}}E{{ep.episode}}: {{ep.title}}
       {% if ep.watched_at %}
-      {% liquid
-      assign now_timestamp = trmnl.system.timestamp_utc
-      assign timestamp = ep.watched_at | date: "%s" | plus: 0
-      assign timezone_offset = trmnl.user.utc_offset | default: 0
-
-      assign today = now_timestamp | date: "%Y-%m-%d"
-      assign timestamp_day = timestamp | date: "%Y-%m-%d"
-      %}
-      {% if today == timestamp_day %}
-      {% assign format = trmnl.plugin_settings.custom_fields_values.time_format | default: "%I:%M %p" %}
-      ✔ {{ timestamp | plus: timezone_offset | date: format }}
-      {% else %}
-      ✔ {{ timestamp | date: "%b %-d" }}
-      {% endif %}
+      ✔ {% render "date": datetime: ep.watched_at, trmnl:trmnl %}
       {% endif %}
       {% if ep.progress %} ({{ep.progress}}%){% endif %}
 
@@ -75,64 +71,22 @@
 
     {% if movie.collected_at %}
     <div class="label label--small w--full text--left m--0" >
-      {% liquid
-      assign now_timestamp = trmnl.system.timestamp_utc
-      assign collected_timestamp = movie.collected_at | date: "%s" | plus: 0
-      assign timezone_offset = trmnl.user.utc_offset | default: 0
-
-      assign today = now_timestamp | date: "%Y-%m-%d"
-      assign collected_day = collected_timestamp | date: "%Y-%m-%d"
-      %}
-      Collected at
-      {% if today == collected_day %}
-      {% assign format = trmnl.plugin_settings.custom_fields_values.time_format | default: "%I:%M %p" %}
-      {{ collected_timestamp | plus: timezone_offset | date: format }}:
-      {% else %}
-      {{ collected_timestamp | date: "%b %-d" }}
-      {% endif %}
+      Collected at {% render "date": datetime: movie.collected_at, trmnl:trmnl %}
 
     </div>
     {% endif %}
     {% if movie.released %}
     <div class="label label--small w--full text--left m--0" >
-
-      {% liquid
-      assign now_timestamp = trmnl.system.timestamp_utc
-      assign timestamp = movie.released | date: "%s" | plus: 0
-      assign timezone_offset = trmnl.user.utc_offset | default: 0
-
-      assign today = now_timestamp | date: "%Y-%m-%d"
-      assign timestamp_day = timestamp | date: "%Y-%m-%d"
-      %}
-      Released at
-      {% if today == timestamp_day %}
-      {% assign format = trmnl.plugin_settings.custom_fields_values.time_format | default: "%I:%M %p" %}
-
-      {{ timestamp | plus: timezone_offset | date: format}}
-      {% else %}
-      {{ timestamp | date: "%b %-d" }}
-      {% endif %}
+      Released at {% render "date": datetime: movie.released, trmnl:trmnl %}
     </div>
 
     {% endif %}
     <div class="label label--small w--full text--left m--0" ><strong data-clamp="3">{{movie.year}}{% if movie.genres.size > 0 %} · Movie{% endif %}{% unless movie.progress %}
       {% if movie.watched_at %}
-      {% liquid
-      assign now_timestamp = trmnl.system.timestamp_utc
-      assign timestamp = movie.watched_at | date: "%s" | plus: 0
-      assign timezone_offset = trmnl.user.utc_offset | default: 0
+      ✔ {% render "date": datetime: movie.watched_at, trmnl:trmnl %}
 
-      assign today = now_timestamp | date: "%Y-%m-%d"
-      assign timestamp_day = timestamp | date: "%Y-%m-%d"
-      %}
-      {% if today == timestamp_day %}
-      {% assign format = trmnl.plugin_settings.custom_fields_values.time_format | default: "%I:%M %p" %}
-
-      ✔ {{ timestamp | plus: timezone_offset | date: format}}
-      {% else %}
-      ✔ {{ timestamp | date: "%b %-d" }}
       {% endif %}
-      {% endif %} {% if movie.rating %} · ★ {{movie.rating}}/10{% endif %}{% endunless %}{% for g in movie.genres limit: 2 %} · {{g}}{% endfor %}</strong></div>
+       {% if movie.rating %} · ★ {{movie.rating}}/10{% endif %}{% endunless %}{% for g in movie.genres limit: 2 %} · {{g}}{% endfor %}</strong></div>
 
     {% if movie.overview %}
     <span class="description" data-clamp="{{desc_clamp}}" data-clamp-lg="{{desc_clamp_lg}}" data-clamp-portrait="{{desc_clamp_portrait}}" data-clamp-lg-portrait="{{desc_clamp_lg_portrait}}">{{movie.overview | escape }}</span>
@@ -149,42 +103,12 @@
   <div class="flex flex--col flex--top gap--none w--full h--full">
     <div class="label label--underline w--full text--left m--0" data-clamp="3">{{show.title}}</div>
     {% if show.collected_at %}
-    <div class="label label--small w--full text--left m--0" >
-      {% liquid
-      assign now_timestamp = trmnl.system.timestamp_utc
-      assign collected_timestamp = show.collected_at | date: "%s" | plus: 0
-      assign timezone_offset = trmnl.user.utc_offset | default: 0
-
-      assign today = now_timestamp | date: "%Y-%m-%d"
-      assign collected_day = collected_timestamp | date: "%Y-%m-%d"
-      %}
-      Collected at
-      {% if today == collected_day %}
-      {% assign format = trmnl.plugin_settings.custom_fields_values.time_format | default: "%I:%M %p" %}
-
-      {{ collected_timestamp | plus: timezone_offset | date: format}}
-      {% else %}
-      {{ collected_timestamp | date: "%b %-d" }}
-      {% endif %}
+      Collected at {% render "date": datetime: show.collected_at, trmnl:trmnl %}
     </div>
     {% endif %}
     <div class="label label--small w--full text--left m--0"><strong data-clamp="3">
       {% if show.watched_at %}
-      {% liquid
-      assign now_timestamp = trmnl.system.timestamp_utc
-      assign timestamp = show.watched_at | date: "%s" | plus: 0
-      assign timezone_offset = trmnl.user.utc_offset | default: 0
-
-      assign today = now_timestamp | date: "%Y-%m-%d"
-      assign timestamp_day = timestamp | date: "%Y-%m-%d"
-      %}
-      {% if today == timestamp_day %}
-      {% assign format = trmnl.plugin_settings.custom_fields_values.time_format | default: "%I:%M %p" %}
-
-      ✔ {{ timestamp | plus: timezone_offset | date: format}}
-      {% else %}
-      ✔ {{ timestamp | date: "%b %-d" }}
-      {% endif %}
+      ✔ {% render "date": datetime: show.watched_at, trmnl:trmnl %}
       {% endif %}
       {% if show.progress %}({{show.progress}}%) {% endif %}{{show.year}}{% if show.genres.size > 0 %} · Show{% endif %}{% if show.rating %} · ★ {{show.rating}}/10{% endif %}{% if show.network %} · {{show.network}}{% endif %}{% for g in show.genres limit: 2 %} · {{g}}{% endfor %}</strong></div>
     {% if show.overview %}<span class="description" data-clamp="{{desc_clamp}}" data-clamp-lg="{{desc_clamp_lg}}" data-clamp-portrait="{{desc_clamp_portrait}}" data-clamp-lg-portrait="{{desc_clamp_lg_portrait}}">{{show.overview | escape }}</span>{% endif %}
