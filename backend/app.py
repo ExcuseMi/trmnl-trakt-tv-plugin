@@ -373,7 +373,8 @@ async def enrich_progress_all(cat_items: list[list], token: str, client_id: str)
         else:
             logger.debug(f"progress {slug}: no data (status={status})")
         for sg in groups:
-            sg['show_progress'] = show_progress
+            sg['show_progress']  = show_progress
+            sg['total_seasons']  = len(seasons_progress)
             _restructure_seasons(sg, seasons_progress)
 
     await asyncio.gather(*[fetch_and_apply(slug, groups) for slug, groups in slug_map.items()])
@@ -383,6 +384,7 @@ async def enrich_progress_all(cat_items: list[list], token: str, client_id: str)
     for sg in all_show_groups:
         if id(sg) not in slugged:
             sg['show_progress'] = None
+            sg['total_seasons'] = 0
             _restructure_seasons(sg, {})
 
 
