@@ -6,6 +6,8 @@ TRMNL Trakt.tv Backend  (FastAPI + asyncio)
 """
 
 import asyncio
+import hashlib
+import json
 import logging
 import math
 import os
@@ -35,12 +37,14 @@ ENABLE_IP_WHITELIST = os.getenv('ENABLE_IP_WHITELIST', 'true').lower() == 'true'
 TRMNL_IPS_API       = 'https://trmnl.com/api/ips'
 LOCALHOST_IPS       = {'127.0.0.1', '::1', 'localhost'}
 
-TMDB_API_KEY   = os.getenv('TMDB_API_KEY', '')
-FANART_API_KEY = os.getenv('FANART_API_KEY', '')
-REDIS_URL      = os.getenv('REDIS_URL', 'redis://redis:6379/0')
+TMDB_API_KEY       = os.getenv('TMDB_API_KEY', '')
+FANART_API_KEY     = os.getenv('FANART_API_KEY', '')
+REDIS_URL          = os.getenv('REDIS_URL', 'redis://redis:6379/0')
+ALLOWED_CLIENT_IDS = set(filter(None, (s.strip() for s in os.getenv('ALLOWED_CLIENT_IDS', '').split(','))))
 
 CACHE_TTL           = int(os.getenv('CACHE_TTL_SECONDS',          '604800'))  # 7 days
 CACHE_TTL_NOT_FOUND = int(os.getenv('CACHE_TTL_NOT_FOUND_SECONDS', '86400'))  # 1 day
+QUERY_CACHE_TTL     = int(os.getenv('QUERY_CACHE_TTL_SECONDS',     '300'))    # 5 minutes
 TMDB_IMAGE_SIZE     = os.getenv('TMDB_IMAGE_SIZE', 'w185')
 
 TMDB_API_BASE   = 'https://api.themoviedb.org/3'
@@ -574,10 +578,20 @@ async def trakt_tv_data(
     client_id = request.headers.get('trakt-api-key', '').strip()
     if not token or not client_id:
         raise HTTPException(status_code=401, detail='Missing Authorization or trakt-api-key header')
+    if ALLOWED_CLIENT_IDS and client_id not in ALLOWED_CLIENT_IDS:
+        logger.warning(f"Blocked client_id: {client_id[:8]}…")
+        raise HTTPException(status_code=403, detail='Access denied')
 
     cats = [c for c in (c.strip() for c in categories.split(',')) if c in VALID_CATEGORIES]
     if not cats:
         cats = ['continue_watching', 'recently_watched', 'upcoming', 'recommended']
+
+    cache_key = 'query_v1:' + hashlib.md5(f'{token}:{client_id}:{",".join(cats)}'.encode()).hexdigest()
+    if redis_client:
+        cached = await redis_client.get(cache_key)
+        if cached:
+            logger.debug(f"query cache hit — user cached")
+            return json.loads(cached)
 
     today = datetime.utcnow().strftime('%Y-%m-%d')
 
@@ -616,7 +630,7 @@ async def trakt_tv_data(
     summary = {c['key']: len(c['items']) for c in categories_out}
     logger.info(f"query response — user={user_data.get('username')!r} cats={summary} has_content={has_content}")
 
-    return {
+    result = {
         'data': {
             'user':  {'username': user_data.get('username')},
             'stats': {
@@ -629,3 +643,8 @@ async def trakt_tv_data(
             'has_content': has_content,
         }
     }
+
+    if redis_client:
+        await redis_client.set(cache_key, json.dumps(result), ex=QUERY_CACHE_TTL)
+
+    return result
