@@ -578,6 +578,9 @@ async def trakt_tv_data(
             has_content = True
         categories_out[cat] = {'key': cat, 'title': CATEGORY_TITLES[cat], 'items': items}
 
+    summary = {cat: len(v['items']) for cat, v in categories_out.items()}
+    logger.info(f"query response — user={user_data.get('username')!r} cats={summary} has_content={has_content}")
+
     return {
         'data': {
             'user':  {'username': user_data.get('username')},
