@@ -39,14 +39,16 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
 {% endtemplate %}
 
 {% template stat_item %}
-<div class="flex flex--row gap--none" style="border:1px solid #000;margin-bottom:3px;">
-  <div style="writing-mode:vertical-lr;background:black;color:white;font-size:0.6em;font-weight:700;letter-spacing:0.08em;text-align:center;padding:2px 1px;flex-shrink:0;">{{stat.label | upcase}}</div>
-  <div class="flex flex--col gap--none" style="padding:2px 4px;">
-    {% if stat.title %}<div class="label label--underline w--full text--left m--0">{{stat.title}}</div>{% endif %}
-    {% for val in stat.values %}
-    <div class="label label--small w--full text--left m--0">{{val}}</div>
-    {% endfor %}
-  </div>
+<div class="bg--gray-60 p--2 rounded flex flex--col text--left stretch-x {% if size == "small" %}sm:portrait:hidden md:portrait:hidden{% endif %} lg:block" style="flex:1;align-items:stretch;">
+      <span class="title title--small">{{stat.label}}</span>
+      <span class="title title--small">{{stat.title}}</span>
+
+      <div class="bg--white p--1 rounded w--full" style="box-sizing:border-box;">
+        <span class="content">
+        {% for val in stat.values %}
+        <p>{{val}}</p>
+        {% endfor %}</span>
+        </div>
 </div>
 {% endtemplate %}
 

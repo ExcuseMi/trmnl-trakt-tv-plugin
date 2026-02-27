@@ -41,6 +41,7 @@ custom_fields:
   - Watchlist: watchlist
   - Collection: collection
   - Trending: trending
+  - Stats: stats
   - None: none
   default: continue_watching
 - keyname: priority_2

@@ -464,7 +464,6 @@ def _build_stat_items(stats_data: dict, top_movies: list = None, top_shows: list
         if mov.get('title'):
             values = []
             if m.get('plays'):   values.append(f"{m['plays']} plays")
-            if mov.get('year'):  values.append(str(mov['year']))
             items.append({'type': 'stat', 'label': 'Top Movie', 'title': mov['title'], 'values': values})
 
     if top_shows:
@@ -473,7 +472,6 @@ def _build_stat_items(stats_data: dict, top_movies: list = None, top_shows: list
         if show.get('title'):
             values = []
             if s.get('plays'):    values.append(f"{s['plays']} plays")
-            if show.get('year'):  values.append(str(show['year']))
             items.append({'type': 'stat', 'label': 'Top Show', 'title': show['title'], 'values': values})
 
     return items
