@@ -425,31 +425,14 @@ def _build_stat_items(stats_data: dict, top_movies: list = None, top_shows: list
             m = top_movies[0]
             movie = m.get('movie', {})
             plays = m.get('plays', 0)
-            movie_values.append({
-                'label': 'Top Movie',
-                'value': f"{movie.get('title')} ({plays} play{'' if plays == 1 else 's'})"
-            })
+            if plays > 1:
+                movie_values.append({
+                    'label': 'Top Movie',
+                    'value': f"{movie.get('title')} ({plays} play{'' if plays == 1 else 's'})"
+                })
 
         if movie_values:
             items.append({'type': 'stat', 'label': 'Movies', 'values': movie_values})
-
-    # Episodes stats
-    if eps:
-        episode_values = []
-        if eps.get('watched'):
-            episode_values.append({'label': 'Watched', 'value': eps['watched']})
-        if eps.get('plays'):
-            episode_values.append({'label': 'Plays', 'value': eps['plays']})
-
-        hours = (eps.get('minutes') or 0) // 60
-        if hours:
-            episode_values.append({'label': 'Hours', 'value': hours})
-        if eps.get('collected'):
-            episode_values.append({'label': 'Collected', 'value': eps['collected']})
-
-        if episode_values:
-            items.append({'type': 'stat', 'label': 'Episodes', 'values': episode_values})
-
     # Shows stats
     if shows:
         show_values = []
@@ -465,14 +448,14 @@ def _build_stat_items(stats_data: dict, top_movies: list = None, top_shows: list
             s = top_shows[0]
             show = s.get('show', {})
             plays = s.get('plays', 0)
-            show_values.append({
-                'label': 'Top Show',
-                'value': f"{show.get('title')} ({plays} play{'' if plays == 1 else 's'})"
-            })
+            if plays > 1:
+                show_values.append({
+                    'label': 'Top Show',
+                    'value': f"{show.get('title')} ({plays} play{'' if plays == 1 else 's'})"
+                })
 
         if show_values:
             items.append({'type': 'stat', 'label': 'Shows', 'values': show_values})
-
     # Network stats
     if net:
         network_values = []
@@ -494,6 +477,25 @@ def _build_stat_items(stats_data: dict, top_movies: list = None, top_shows: list
             'label': 'Ratings',
             'values': [{'label': 'Total', 'value': total}]
         })
+
+    # Episodes stats
+    if eps:
+        episode_values = []
+        if eps.get('watched'):
+            episode_values.append({'label': 'Watched', 'value': eps['watched']})
+        if eps.get('plays'):
+            episode_values.append({'label': 'Plays', 'value': eps['plays']})
+
+        hours = (eps.get('minutes') or 0) // 60
+        if hours:
+            episode_values.append({'label': 'Hours', 'value': hours})
+        if eps.get('collected'):
+            episode_values.append({'label': 'Collected', 'value': eps['collected']})
+
+        if episode_values:
+            items.append({'type': 'stat', 'label': 'Episodes', 'values': episode_values})
+
+
 
     return items
 

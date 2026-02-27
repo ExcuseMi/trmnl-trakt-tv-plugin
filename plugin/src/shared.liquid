@@ -45,12 +45,8 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
           <span class="title title--small">{{stat.label}}</span>
           {% if stat.title %}<span class="title title--small">{{stat.title}}</span>{% endif %}
 
-            {% if stat.show.title %} <span class="title title--small">{{stat.show.title}}</span>{% endif %}
-            {% if stat.movie.title %} <span class="title title--small">{{stat.movie.title}}</span>{% endif %}
-
-
                 {% for val in stat.values %}
-                <div class="description">{{val}}</div>
+                <div class="description">{{val.label}}: {{val.value}}</div>
                 {% endfor %}
             </span>
      </div>
