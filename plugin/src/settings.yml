@@ -16,7 +16,7 @@ custom_fields:
     Track your Trakt.tv activity right on your TRMNL device.<br /><br />
     <strong>Available categories</strong><br />
     · <strong>Now Watching</strong> — currently playing<br />
-    · <strong>Continue Watching / On Hold</strong> — paused shows &amp; movies<br />
+    · <strong>Continue Watching / Paused</strong> — paused shows &amp; movies<br />
     · <strong>Recently Watched</strong> — your watch history<br />
     · <strong>Upcoming</strong> — next episodes &amp; releases<br />
     · <strong>Recommended</strong> — personalized picks from Trakt<br />
@@ -33,7 +33,7 @@ custom_fields:
   description: Category shown in the first position.
   options:
   - Now Watching: watching
-  - Continue Watching / On hold: continue_watching
+  - Continue Watching / Paused: continue_watching
   - Recently Watched: recently_watched
   - Upcoming: upcoming
   - Recommended: recommended
@@ -47,7 +47,7 @@ custom_fields:
   description: Category shown in the second position.
   options:
   - Now Watching: watching
-  - Continue Watching / On hold: continue_watching
+  - Continue Watching / Paused: continue_watching
   - Recently Watched: recently_watched
   - Upcoming: upcoming
   - Recommended: recommended
@@ -61,7 +61,7 @@ custom_fields:
   description: Category shown in the third position.
   options:
   - Now Watching: watching
-  - Continue Watching / On hold: continue_watching
+  - Continue Watching / Paused: continue_watching
   - Recently Watched: recently_watched
   - Upcoming: upcoming
   - Recommended: recommended
@@ -75,7 +75,7 @@ custom_fields:
   description: Category shown in the fourth position.
   options:
   - Now Watching: watching
-  - Continue Watching / On hold: continue_watching
+  - Continue Watching / Paused: continue_watching
   - Recently Watched: recently_watched
   - Upcoming: upcoming
   - Recommended: recommended
@@ -89,7 +89,7 @@ custom_fields:
   description: Category shown in the fifth position.
   options:
   - Now Watching: watching
-  - Continue Watching / On hold: continue_watching
+  - Continue Watching / Paused: continue_watching
   - Recently Watched: recently_watched
   - Upcoming: upcoming
   - Recommended: recommended

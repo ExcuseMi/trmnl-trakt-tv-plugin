@@ -257,7 +257,7 @@ async def enrich_images(items: list) -> list:
 
 CATEGORY_TITLES = {
     'watching':          'Now',
-    'continue_watching': 'On Hold',
+    'continue_watching': 'Paused',
     'recently_watched':  'Recent',
     'upcoming':          'Upcoming',
     'recommended':       'Recommended',
@@ -511,21 +511,40 @@ async def _fetch_list(cat: str, token: str, client_id: str) -> list:
     shows, seen = [], set()
     for item in (raw_shows or []):
         s = _show(item)
+        collected_at = item.get('last_collected_at', None)
+        updated_at = item.get('last_updated_at', None)
         if s.get('title') not in seen:
             seen.add(s['title'])
-            shows.append({'type': 'show', 'title': s.get('title'), 'year': s.get('year'),
-                          'genres': s.get('genres') or [], 'overview': s.get('overview'),
-                          'rating': _rating(s), 'network': s.get('network'),
-                          'tmdb_id': _ids(s).get('tmdb'), 'media_type': 'show'})
+            show_ = {'type': 'show', 'title': s.get('title'), 'year': s.get('year'),
+                     'genres': s.get('genres') or [], 'overview': s.get('overview'),
+                     'rating': _rating(s), 'network': s.get('network'),
+                     'tmdb_id': _ids(s).get('tmdb'), 'media_type': 'show'
+                     }
+            if collected_at:
+                show_['collected_at'] = collected_at
+            if updated_at:
+                show_['updated_at'] = updated_at
+
+            shows.append(show_)
     movs, seen = [], set()
     for item in (raw_movs or []):
         m   = _movie(item)
+        collected_at = item.get('collected_at', None)
+        updated_at = item.get('updated_at', None)
+
         key = f"{m.get('title')}-{m.get('year')}"
         if key not in seen:
             seen.add(key)
-            movs.append({'type': 'movie', 'title': m.get('title'), 'year': m.get('year'),
-                         'genres': m.get('genres') or [], 'overview': m.get('overview'),
-                         'rating': _rating(m), 'tmdb_id': _ids(m).get('tmdb'), 'media_type': 'movie'})
+            movie_ = {'type': 'movie', 'title': m.get('title'), 'year': m.get('year'),
+                      'genres': m.get('genres') or [], 'overview': m.get('overview'),
+                      'rating': _rating(m), 'tmdb_id': _ids(m).get('tmdb'), 'media_type': 'movie'
+
+                      }
+            if collected_at:
+                movie_['collected_at'] = collected_at
+            if updated_at:
+                movie_['updated_at'] = updated_at
+            movs.append(movie_)
     return shows + movs
 
 

@@ -11,7 +11,21 @@
     <div class="label label--small w--full text--left m--0"><i>S{{season.number}}{% if show_group.total_seasons > 1 %} of {{show_group.total_seasons}}{% endif %} · E{{season.progress.completed}} of {{season.progress.aired}} {% if show_group.show_progress and show_group.show_progress.completed > 0 %} ({% assign _show_pct = show_group.show_progress.completed | times: 100 | divided_by: show_group.show_progress.aired %}{{_show_pct}}%{% endif %})</i></div>
     {% endif %}
     {% for ep in season.episodes | limit: 3 %}
-    <div class="label label--small w--full text--left m--0"><strong data-clamp="3">S{{season.number}}E{{ep.episode}}: {{ep.title}}{% if ep.watched_at %} ({{ep.watched_at | date: "%b %-d"}}){% endif %}{% if ep.progress %} ({{ep.progress}}%){% endif %}{% if ep.airs_at %} ({{ep.airs_at | date: "%b %-d"}}){% endif %}</strong></div>
+    <div class="label label--small w--full text--left m--0"><strong data-clamp="3">S{{season.number}}E{{ep.episode}}: {{ep.title}}{% if ep.watched_at %} ({{ep.watched_at | date: "%b %-d"}}){% endif %}{% if ep.progress %} ({{ep.progress}}%){% endif %}
+    {% if ep.airs_at %}
+      {% liquid
+        assign now = 'now' | date: "%s" | plus: 0
+        assign air_date = ep.airs_at | date: "%s" | plus: 0
+        assign timezone_offset = trmnl.user.utc_offset | default: 0
+      %}
+
+      {% if now | date: "%Y-%m-%d" == air_date | date: "%Y-%m-%d" %}
+        ({{ep.airs_at | date: "%s" | plus: timezone_offset | date: "%I:%M %p"}})
+      {% else %}
+        ({{ep.airs_at | date: "%b %-d"}})
+      {% endif %}
+    {% endif %}
+    </strong></div>
     {% if season.episodes.size == 1 and ep.overview %}
     <span class="description" data-clamp="{{desc_clamp}}" data-clamp-lg="{{desc_clamp_lg}}" data-clamp-portrait="{{desc_clamp_portrait}}" data-clamp-lg-portrait="{{desc_clamp_lg_portrait}}">{{ep.overview | escape }}</span>
     {% endif %}
@@ -128,7 +142,7 @@ cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
     {% if cat.items.size > 0 %}
 
     <div class="item h--min-40 m--1" style="flex-grow:0;align-items:stretch;border:2px solid #000;box-shadow:4px 4px 0 0 #000;">
-      <div class="meta w--6 bg--black" style="writing-mode:vertical-lr;letter-spacing:0.1em;font-weight:700;text-align:center;flex-shrink:0;color:white;background-color:black;margin:4px 0;">{{cat.title | upcase | replace: ' ', '<br>'}}</div>
+      <div class="meta w--6 bg--black" style="writing-mode:vertical-lr;letter-spacing:0.1em;font-weight:700;text-align:center;flex-shrink:0;color:white;background-color:black;margin:4px 0;">{{cat.title | upcase}}</div>
       <div class="flex flex--row p--1 stretch" >
 
         <div class="{{_grid}} w--min-0 stretch" style="overflow:hidden;flex:1;padding-right:6px;padding-bottom:6px;">
@@ -152,7 +166,7 @@ cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
                   <div{% if _ic != "" %} class="{{_ic}}"{% endif %}>
                     {% if item.type == "show_group" %}{% render "show_group_item", show_group: item, data: data, img_class: img_class, show_images: _show_images, desc_clamp: _dc, desc_clamp_lg: _dc_lg, desc_clamp_portrait: _dc_p, desc_clamp_lg_portrait: _dc_lp %}
                     {% elsif item.type == "movie" %}{% render "movie_item", movie: item, data: data, img_class: img_class, show_images: _show_images, desc_clamp: _dc, desc_clamp_lg: _dc_lg, desc_clamp_portrait: _dc_p, desc_clamp_lg_portrait: _dc_lp %}
-                    {% elsif item.type == "show" %}{% render "show_item", show: item, data: data, img_class: img_class, show_images: _show_images, desc_clamp: _dc, desc_clamp_lg: _dc_lg, desc_clamp_portrait: _dc_p, desc_clamp_lg_portrait: _dc_lp %}
+                    {% elsif item.type == "show" %}{% render "show_item", show: item, data: data, img_class: img_class, show_images: _show_images, desc_clamp: _dc, desc_clamp_lg: _dc_lg, desc_clamp_portrait: _dc_p, desc_clamp_lg_portrait: _dc_lp, trmnl:trmnl%}
                     {% elsif item.type == "stat" %}{% render "stat_item", stat: item, data: data %}
                     {% endif %}
                   </div>
