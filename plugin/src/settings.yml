@@ -22,7 +22,6 @@ custom_fields:
     · <strong>Recommended</strong> — personalized picks from Trakt <em>(self only)</em><br />
     · <strong>Watchlist</strong> — saved items<br />
     · <strong>Collection</strong> — collected media<br />
-    · <strong>Stats</strong> — watch statistics<br />
     · <strong>Trending</strong> — what's popular right now<br /><br />
     <strong>Requires Trakt.tv OAuth</strong>
   category: entertainment
@@ -41,7 +40,6 @@ custom_fields:
   - Recommended: recommended
   - Watchlist: watchlist
   - Collection: collection
-  - Stats: stats
   - Trending: trending
   - None: none
   default: continue_watching
@@ -57,7 +55,6 @@ custom_fields:
   - Recommended: recommended
   - Watchlist: watchlist
   - Collection: collection
-  - Stats: stats
   - Trending: trending
   - None: none
   default: recently_watched
@@ -73,7 +70,6 @@ custom_fields:
   - Recommended: recommended
   - Watchlist: watchlist
   - Collection: collection
-  - Stats: stats
   - Trending: trending
   - None: none
   default: upcoming
@@ -89,7 +85,6 @@ custom_fields:
   - Recommended: recommended
   - Watchlist: watchlist
   - Collection: collection
-  - Stats: stats
   - Trending: trending
   - None: none
   default: recommended
@@ -105,7 +100,6 @@ custom_fields:
   - Recommended: recommended
   - Watchlist: watchlist
   - Collection: collection
-  - Stats: stats
   - Trending: trending
   - None: none
   default: none

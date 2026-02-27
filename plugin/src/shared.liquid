@@ -38,44 +38,15 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
 {% endif %}
 {% endtemplate %}
 
-{% template show_group_item %}
-<div class="flex flex--row flex--top gap--small show_group_item">
-  {% if show_group.image_url and show_images != "false" %}
-  <div style="position:relative;display:inline-block;flex-shrink:0;align-self:flex-start;overflow:hidden;"><img class="image image-dither image--contain {{img_class}}" src="{{show_group.image_url}}"/>{% unless img_class == 'hidden' or img_class == ' hidden' %}
-  <div class="image-badge">
-  {{ show_icon }}
-  </div>{% endunless %}</div>
-  {% endif %}
-  <div class="flex flex--col flex--top gap--none w--full h--full">
-    <div class="label label--underline w--full text--left m--0">{% if show_group.favorited %}★ {% endif %}{{show_group.show}}</div>
-    {% for season in show_group.seasons | limit: 1 %}
-    {% if season.progress and season.progress.completed > 0 %}
-    {% assign _s_pct = season.progress.completed | times: 100 | divided_by: season.progress.aired %}
-    <div class="label label--small w--full text--left m--0"><i>S{{season.number}}{% if show_group.total_seasons > 1 %} of {{show_group.total_seasons}}{% endif %} · E{{season.progress.completed}} of {{season.progress.aired}} {% if show_group.show_progress and show_group.show_progress.completed > 0 %} ({% assign _show_pct = show_group.show_progress.completed | times: 100 | divided_by: show_group.show_progress.aired %}{{_show_pct}}%{% endif %})</i></div>
-    {% endif %}
-    {% for ep in season.episodes | limit: 3 %}
-    <div class="label label--small w--full text--left m--0"><strong data-clamp="3">
-      {% if ep.airs_at %}
-      {% render "date": datetime: ep.airs_at, trmnl:trmnl %}:
-      {% endif %}
-      S{{season.number}}E{{ep.episode}}: {{ep.title}}
-      {% if ep.watched_at %}
-      ✔ {% render "date": datetime: ep.watched_at, trmnl:trmnl %}
-      {% endif %}
-      {% if ep.progress %} ({{ep.progress}}%){% endif %}
-
-    </strong></div>
-    {% if season.episodes.size == 1 %}{% render "overview_item", overview_text: ep.overview, desc_clamp: desc_clamp, desc_clamp_lg: desc_clamp_lg, desc_clamp_portrait: desc_clamp_portrait, desc_clamp_lg_portrait: desc_clamp_lg_portrait %}{% endif %}
-    {% endfor %}
+{% template stat_item %}
+<div class="flex flex--row gap--none" style="border:1px solid #000;margin-bottom:3px;">
+  <div style="writing-mode:vertical-lr;background:black;color:white;font-size:0.6em;font-weight:700;letter-spacing:0.08em;text-align:center;padding:2px 1px;flex-shrink:0;">{{stat.label | upcase}}</div>
+  <div class="flex flex--col gap--none" style="padding:2px 4px;">
+    {% if stat.title %}<div class="label label--underline w--full text--left m--0">{{stat.title}}</div>{% endif %}
+    {% for val in stat.values %}
+    <div class="label label--small w--full text--left m--0">{{val}}</div>
     {% endfor %}
   </div>
-</div>
-{% endtemplate %}
-
-{% template stat_item %}
-<div class="flex flex--col gap--none">
-  <div class="label label--underline w--full text--left m--0">{{stat.label}}</div>
-  <div class="label label--small w--full text--left m--0">{{stat.line}}</div>
 </div>
 {% endtemplate %}
 
@@ -121,7 +92,12 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
 </div>
 {% endtemplate %}
 
+{% comment %}Unified show template — handles both show_group (episode list) and show (metadata) items.
+  show_group items have: show.show (title), show.seasons (non-empty), show.show_progress, show.total_seasons
+  show items have:       show.title, show.genres, show.overview, show.rating, show.network
+  Both have: show.image_url, show.favorited, show.watchers{% endcomment %}
 {% template show_item %}
+{% assign _title = show.title | default: show.show %}
 <div class="flex flex--row flex--top gap--small show_item">
   {% if show.image_url and show_images != "false" %}
   <div style="position:relative;display:inline-block;flex-shrink:0;align-self:flex-start;overflow:hidden;"><img class="image image--contain image-dither {{img_class}}" src="{{show.image_url}}"/>{% unless img_class == 'hidden' or img_class == ' hidden' %}
@@ -130,7 +106,30 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
   </div>{% endunless %}</div>
   {% endif %}
   <div class="flex flex--col flex--top gap--none w--full h--full">
-    <div class="label label--underline w--full text--left m--0" data-clamp="3">{% if show.favorited %}★ {% endif %}{{show.title}}</div>
+    <div class="label label--underline w--full text--left m--0">{% if show.favorited %}★ {% endif %}{{_title}}</div>
+    {% if show.seasons.size > 0 %}
+    {% comment %}Episode mode — show_group type{% endcomment %}
+    {% for season in show.seasons | limit: 1 %}
+    {% if season.progress and season.progress.completed > 0 %}
+    <div class="label label--small w--full text--left m--0"><i>S{{season.number}}{% if show.total_seasons > 1 %} of {{show.total_seasons}}{% endif %} · E{{season.progress.completed}} of {{season.progress.aired}} {% if show.show_progress and show.show_progress.completed > 0 %} ({% assign _show_pct = show.show_progress.completed | times: 100 | divided_by: show.show_progress.aired %}{{_show_pct}}%{% endif %})</i></div>
+    {% endif %}
+    {% for ep in season.episodes | limit: 3 %}
+    <div class="label label--small w--full text--left m--0"><strong data-clamp="3">
+      {% if ep.airs_at %}
+      {% render "date": datetime: ep.airs_at, trmnl:trmnl %}:
+      {% endif %}
+      S{{season.number}}E{{ep.episode}}: {{ep.title}}
+      {% if ep.watched_at %}
+      ✔ {% render "date": datetime: ep.watched_at, trmnl:trmnl %}
+      {% endif %}
+      {% if ep.progress %} ({{ep.progress}}%){% endif %}
+
+    </strong></div>
+    {% if season.episodes.size == 1 %}{% render "overview_item", overview_text: ep.overview, desc_clamp: desc_clamp, desc_clamp_lg: desc_clamp_lg, desc_clamp_portrait: desc_clamp_portrait, desc_clamp_lg_portrait: desc_clamp_lg_portrait %}{% endif %}
+    {% endfor %}
+    {% endfor %}
+    {% else %}
+    {% comment %}Show metadata mode — show type{% endcomment %}
     {% if show.collected_at %}
     <div class="label label--small w--full text--left m--0">Collected at {% render "date": datetime: show.collected_at, trmnl:trmnl %}</div>
     {% endif %}
@@ -140,6 +139,7 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
       {% endif %}
       {% if show.progress %}({{show.progress}}%) {% endif %}{{show.year}}{% if show.genres.size > 0 %} · Show{% endif %}{% if show.rating %} · ★ {{show.rating}}/10{% endif %}{% if show.network %} · {{show.network}}{% endif %}{% if show.watchers %} · {{show.watchers}} watching{% endif %}{% for g in show.genres limit: 2 %} · {{g}}{% endfor %}</strong></div>
     {% render "overview_item", overview_text: show.overview, desc_clamp: desc_clamp, desc_clamp_lg: desc_clamp_lg, desc_clamp_portrait: desc_clamp_portrait, desc_clamp_lg_portrait: desc_clamp_lg_portrait %}
+    {% endif %}
   </div>
 </div>
 {% endtemplate %}
@@ -235,9 +235,8 @@ cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
                   {% assign _ic = _ic | strip %}
 
                   <div{% if _ic != "" %} class="{{_ic}}"{% endif %}>
-                    {% if item.type == "show_group" %}{% render "show_group_item", show_group: item, data: data, img_class: img_class, show_images: _show_images, desc_clamp: _dc, desc_clamp_lg: _dc_lg, desc_clamp_portrait: _dc_p, desc_clamp_lg_portrait: _dc_lp, trmnl:trmnl, show_icon: show_icon, movie_icon: movie_icon %}
+                    {% if item.type == "show_group" or item.type == "show" %}{% render "show_item", show: item, data: data, img_class: img_class, show_images: _show_images, desc_clamp: _dc, desc_clamp_lg: _dc_lg, desc_clamp_portrait: _dc_p, desc_clamp_lg_portrait: _dc_lp, trmnl:trmnl, show_icon: show_icon, movie_icon: movie_icon %}
                     {% elsif item.type == "movie" %}{% render "movie_item", movie: item, data: data, img_class: img_class, show_images: _show_images, desc_clamp: _dc, desc_clamp_lg: _dc_lg, desc_clamp_portrait: _dc_p, desc_clamp_lg_portrait: _dc_lp, trmnl:trmnl, show_icon: show_icon, movie_icon: movie_icon %}
-                    {% elsif item.type == "show" %}{% render "show_item", show: item, data: data, img_class: img_class, show_images: _show_images, desc_clamp: _dc, desc_clamp_lg: _dc_lg, desc_clamp_portrait: _dc_p, desc_clamp_lg_portrait: _dc_lp, trmnl:trmnl, show_icon: show_icon, movie_icon: movie_icon%}
                     {% elsif item.type == "stat" %}{% render "stat_item", stat: item, data: data, trmnl:trmnl, show_icon: show_icon, movie_icon: movie_icon %}
                     {% endif %}
                   </div>
@@ -255,6 +254,6 @@ cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
                   <div class="title_bar">
                     <img class="image image-dither rounded" src="https://raw.githubusercontent.com/Taxel/PlexTraktSync/refs/heads/main/trakt.ico">
                     <span class="title">{% assign _iname = trmnl.plugin_settings.instance_name %}{% if _iname and _iname != 'Trakt.tv' %}{{_iname}}{% elsif data.user.username %}{% assign _ul = data.user.username | slice: -1 %}{{data.user.username}}{% if _ul == 's' or _ul == 'S' %}'{% else %}'s{% endif %} Trakt.tv{% else %}Trakt.tv{% endif %}</span>
-                    <span class="instance {% if titlebar_instance_class %}{{titlebar_instance_class}}{% endif %}">{% assign _sp = "" %}{% assign _ss = "" %}{% assign _hc = "" %}{% if data.stats.hours_watched > 0 %}{% assign _sp = _sp | append: _ss | append: data.stats.hours_watched | append: "h watched" %}{% assign _ss = " · " %}{% endif %}{% if data.stats.movies_collected > 0 %}{% assign _mc = data.stats.movies_collected | append: " movie" %}{% if data.stats.movies_collected != 1 %}{% assign _mc = _mc | append: "s" %}{% endif %}{% assign _sp = _sp | append: _ss | append: _mc %}{% assign _ss = " · " %}{% assign _hc = "1" %}{% endif %}{% if data.stats.shows_collected > 0 %}{% assign _sc = data.stats.shows_collected | append: " show" %}{% if data.stats.shows_collected != 1 %}{% assign _sc = _sc | append: "s" %}{% endif %}{% if data.stats.episodes_collected > 0 %}{% assign _ep = data.stats.episodes_collected | append: " ep" %}{% if data.stats.episodes_collected != 1 %}{% assign _ep = _ep | append: "s" %}{% endif %}{% assign _sc = _sc | append: " (" | append: _ep | append: ")" %}{% endif %}{% assign _sp = _sp | append: _ss | append: _sc %}{% assign _hc = "1" %}{% endif %}{% if _hc != "" %}{% assign _sp = _sp | append: " collected" %}{% endif %}{{_sp}}</span>
+                    <span class="instance {% if titlebar_instance_class %}{{titlebar_instance_class}}{% endif %}"></span>
                   </div>
                   {% endtemplate %}
