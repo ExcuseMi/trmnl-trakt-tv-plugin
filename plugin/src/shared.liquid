@@ -1,9 +1,21 @@
+<style>
+.image-badge {
+position:absolute;
+bottom:3px;
+right:3px;
+background:white;
+border-radius:4px;
+padding:2px;
+line-height:0;
+filter:invert(1);
+}
+</style>
 {% capture movie_icon %}
-<svg class="image-stroke" width="18" height="18" viewBox="206 517 32 32" fill="currentColor"><path d="M225,531.012 C222.232,531.012 219.989,528.768 219.989,526 C219.989,523.232 222.232,520.989 225,520.989 C227.768,520.989 230.011,523.232 230.011,526 C230.011,528.768 227.768,531.012 225,531.012 L225,531.012 Z M212,531 C209.791,531 208,529.209 208,527 C208,524.791 209.791,523 212,523 C214.209,523 216,524.791 216,527 C216,529.209 214.209,531 212,531 L212,531 Z M236,531 L230,535 C230,533.786 229.448,532.712 228.594,531.979 C230.626,530.753 232,528.546 232,526 C232,522.134 228.866,519 225,519 C221.134,519 218,522.134 218,526 C218,527.962 218.812,529.729 220.111,531 L216.443,531 C217.4,529.937 218,528.544 218,527 C218,523.687 215.313,521 212,521 C208.687,521 206,523.687 206,527 C206,528.809 206.816,530.41 208.082,531.511 C206.847,532.191 206,533.49 206,535 L206,543 C206,545.209 207.791,547 210,547 L226,547 C228.209,547 230,545.209 230,543 L236,547 C237.104,547 238,546.104 238,545 L238,533 C238,531.896 237.104,531 236,531 L236,531 Z"/></svg>
+<svg class="image-stroke w--5 h--5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path opacity=".6" fill-rule="evenodd" clip-rule="evenodd" d="M3 4h18a1 1 0 0 1 1 1v1H2V5a1 1 0 0 1 1-1z" fill="#000000"/><path opacity=".3" fill-rule="evenodd" clip-rule="evenodd" d="M5 2h14a1 1 0 0 1 1 1v1H4V3a1 1 0 0 1 1-1z" fill="#000000"/><path fill-rule="evenodd" clip-rule="evenodd" d="M1 6h22a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zm0 2v3h3V8H1zm0 5v3h3v-3H1zm0 5v3h3v-3H1zM20 8v3h3V8h-3zm0 5v3h3v-3h-3zm0 5v3h3v-3h-3z" fill="#000000"/></svg>
 {% endcapture %}
 
 {% capture show_icon %}
-<svg class="image-stroke" width="18" height="18" viewBox="362 517 32 32" fill="currentColor"><path d="M387,535 C385.343,535 384,533.657 384,532 C384,530.343 385.343,529 387,529 C388.657,529 390,530.343 390,532 C390,533.657 388.657,535 387,535 L387,535 Z M389,542 L385,542 C384.447,542 384,541.553 384,541 C384,540.447 384.447,540 385,540 L389,540 C389.553,540 390,540.447 390,541 C390,541.553 389.553,542 389,542 L389,542 Z M389,545 L385,545 C384.447,545 384,544.553 384,544 C384,543.447 384.447,543 385,543 L389,543 C389.553,543 390,543.447 390,544 C390,544.553 389.553,545 389,545 L389,545 Z M382,543 C382,544.104 381.104,545 380,545 L368,545 C366.896,545 366,544.104 366,543 L366,531 C366,529.896 366.896,529 368,529 L380,529 C381.104,529 382,529.896 382,531 L382,543 L382,543 Z M390,525 L380.746,525 L389.518,518.965 C389.981,518.646 390.113,517.988 389.813,517.496 C389.514,517.004 388.895,516.863 388.431,517.182 C388.431,517.182 378.821,523.817 378.009,524.307 L367.569,517.182 C367.106,516.863 366.486,517.004 366.187,517.496 C365.887,517.988 366.019,518.646 366.482,518.965 L375.254,525 L366,525 C363.791,525 362,526.791 362,529 L362,545 C362,547.209 363.791,549 366,549 L390,549 C392.209,549 394,547.209 394,545 L394,529 C394,526.791 392.209,525 390,525 L390,525 Z M386,533 L388,533 L388,531 L386,531 L386,533 Z M379,531 L369,531 C368.447,531 368,531.448 368,532 L368,542 C368,542.553 368.447,543 369,543 L379,543 C379.553,543 380,542.553 380,542 L380,532 C380,531.448 379.553,531 379,531 L379,531 Z"/></svg>
+<svg class="image-stroke w--5 h--5" viewBox="362 517 32 32" fill="currentColor"><path d="M387,535 C385.343,535 384,533.657 384,532 C384,530.343 385.343,529 387,529 C388.657,529 390,530.343 390,532 C390,533.657 388.657,535 387,535 L387,535 Z M389,542 L385,542 C384.447,542 384,541.553 384,541 C384,540.447 384.447,540 385,540 L389,540 C389.553,540 390,540.447 390,541 C390,541.553 389.553,542 389,542 L389,542 Z M389,545 L385,545 C384.447,545 384,544.553 384,544 C384,543.447 384.447,543 385,543 L389,543 C389.553,543 390,543.447 390,544 C390,544.553 389.553,545 389,545 L389,545 Z M382,543 C382,544.104 381.104,545 380,545 L368,545 C366.896,545 366,544.104 366,543 L366,531 C366,529.896 366.896,529 368,529 L380,529 C381.104,529 382,529.896 382,531 L382,543 L382,543 Z M390,525 L380.746,525 L389.518,518.965 C389.981,518.646 390.113,517.988 389.813,517.496 C389.514,517.004 388.895,516.863 388.431,517.182 C388.431,517.182 378.821,523.817 378.009,524.307 L367.569,517.182 C367.106,516.863 366.486,517.004 366.187,517.496 C365.887,517.988 366.019,518.646 366.482,518.965 L375.254,525 L366,525 C363.791,525 362,526.791 362,529 L362,545 C362,547.209 363.791,549 366,549 L390,549 C392.209,549 394,547.209 394,545 L394,529 C394,526.791 392.209,525 390,525 L390,525 Z M386,533 L388,533 L388,531 L386,531 L386,533 Z M379,531 L369,531 C368.447,531 368,531.448 368,532 L368,542 C368,542.553 368.447,543 369,543 L379,543 C379.553,543 380,542.553 380,542 L380,532 C380,531.448 379.553,531 379,531 L379,531 Z"/></svg>
 {% endcapture %}
 {% template date %}
 {% liquid
@@ -29,7 +41,8 @@ assign current_year = now_timestamp | date: "%Y"
 {% template show_group_item %}
 <div class="flex flex--row flex--top gap--small show_group_item">
   {% if show_group.image_url and show_images != "false" %}
-  <div style="position:relative;display:inline-block;flex-shrink:0;align-self:flex-start;overflow:hidden;"><img class="image image-dither image--contain {{img_class}}" src="{{show_group.image_url}}"/>{% unless img_class == 'hidden' or img_class == ' hidden' %}<div style="position:absolute;bottom:3px;right:3px;background:white;border-radius:4px;padding:2px;line-height:0;filter:invert(1);">
+  <div style="position:relative;display:inline-block;flex-shrink:0;align-self:flex-start;overflow:hidden;"><img class="image image-dither image--contain {{img_class}}" src="{{show_group.image_url}}"/>{% unless img_class == 'hidden' or img_class == ' hidden' %}
+  <div class="image-badge">
   {{ show_icon }}
   </div>{% endunless %}</div>
   {% endif %}
@@ -72,7 +85,8 @@ assign current_year = now_timestamp | date: "%Y"
 <div class="flex flex--row flex--top gap--small movie_item">
   {% if movie.image_url and show_images != "false" %}
   <div style="position:relative;display:inline-block;flex-shrink:0;align-self:flex-start;overflow:hidden;">
-    <img class="image image-dither image--contain {{img_class}}" src="{{movie.image_url}}"/>{% unless img_class == 'hidden' or img_class == ' hidden' %}<div style="position:absolute;bottom:3px;right:3px;background:white;border-radius:4px;padding:2px;line-height:0;filter:invert(1);">
+    <img class="image image-dither image--contain {{img_class}}" src="{{movie.image_url}}"/>{% unless img_class == 'hidden' or img_class == ' hidden' %}
+    <div class="image-badge">
     {{movie_icon}}
     </div>{% endunless %}</div>
   {% endif %}
@@ -108,13 +122,15 @@ assign current_year = now_timestamp | date: "%Y"
 {% template show_item %}
 <div class="flex flex--row flex--top gap--small show_item">
   {% if show.image_url and show_images != "false" %}
-  <div style="position:relative;display:inline-block;flex-shrink:0;align-self:flex-start;overflow:hidden;"><img class="image image--contain image-dither {{img_class}}" src="{{show.image_url}}"/>{% unless img_class == 'hidden' or img_class == ' hidden' %}<div style="position:absolute;bottom:3px;right:3px;background:white;border-radius:4px;padding:2px;line-height:0;filter:invert(1);">
+  <div style="position:relative;display:inline-block;flex-shrink:0;align-self:flex-start;overflow:hidden;"><img class="image image--contain image-dither {{img_class}}" src="{{show.image_url}}"/>{% unless img_class == 'hidden' or img_class == ' hidden' %}
+  <div class="image-badge">
   {{ show_icon }}
   </div>{% endunless %}</div>
   {% endif %}
   <div class="flex flex--col flex--top gap--none w--full h--full">
     <div class="label label--underline w--full text--left m--0" data-clamp="3">{{show.title}}</div>
     {% if show.collected_at %}
+      <div class="label label--small w--full text--left m--0"><strong data-clamp="3">
       Collected at {% render "date": datetime: show.collected_at, trmnl:trmnl %}
     </div>
     {% endif %}
