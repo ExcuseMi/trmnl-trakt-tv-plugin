@@ -405,6 +405,25 @@ def _build_stat_items(stats_data: dict, top_movies: list = None, top_shows: list
     eps     = stats_data.get('episodes') or {}
     net     = stats_data.get('network')  or {}
     ratings = stats_data.get('ratings')  or {}
+    if top_movies:
+        m   = top_movies[0]
+        mov = m.get('movie') or {}
+        if mov.get('title'):
+            values = []
+            plays = m.get('plays', 0)
+            if plays > 1:
+                values.append(f"{m['plays']} plays")
+                items.append({'type': 'stat', 'label': 'Top Movie', 'item': mov, 'values': values})
+
+    if top_shows:
+        s = top_shows[0]
+        show = s.get('show') or {}
+        if show.get('title'):
+            values = []
+            plays = s.get('plays', 0)
+            if plays > 1:
+                values.append(f"{s['plays']} plays")
+                items.append({'type': 'stat', 'label': 'Top Show', 'show': show, 'values': values})
 
     if movies:
         values = []
@@ -458,21 +477,6 @@ def _build_stat_items(stats_data: dict, top_movies: list = None, top_shows: list
     if total:
         items.append({'type': 'stat', 'label': 'Ratings', 'values': [f"{total} rated"]})
 
-    if top_movies:
-        m   = top_movies[0]
-        mov = m.get('movie') or {}
-        if mov.get('title'):
-            values = []
-            if m.get('plays'):   values.append(f"{m['plays']} plays")
-            items.append({'type': 'stat', 'label': 'Top Movie', 'title': mov['title'], 'values': values})
-
-    if top_shows:
-        s    = top_shows[0]
-        show = s.get('show') or {}
-        if show.get('title'):
-            values = []
-            if s.get('plays'):    values.append(f"{s['plays']} plays")
-            items.append({'type': 'stat', 'label': 'Top Show', 'title': show['title'], 'values': values})
 
     return items
 
