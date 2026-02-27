@@ -324,22 +324,42 @@ def _dedupe_movies(items: list, mapper) -> list:
     return [seen[k] for k in order]
 
 
-async def _enrich_progress(show_groups: list, token: str, client_id: str) -> list:
-    async def fetch_one(sg):
-        slug = sg.get('trakt_slug')
-        if not slug:
-            return sg
+async def enrich_progress_all(cat_items: list[list], token: str, client_id: str):
+    """
+    Fetch /shows/:slug/progress/watched once per unique slug across all categories,
+    then apply season_progress + show_progress to every matching show_group in-place.
+    """
+    # Collect all show_groups and group by slug
+    slug_map: dict[str, list] = {}
+    for items in cat_items:
+        for item in items:
+            if item.get('type') == 'show_group':
+                slug = item.get('trakt_slug')
+                if slug:
+                    slug_map.setdefault(slug, []).append(item)
+
+    if not slug_map:
+        return
+
+    async def fetch_and_apply(slug: str, groups: list):
         status, data = await trakt_get(f"/shows/{slug}/progress/watched", token, client_id)
-        if status == 200 and data:
-            sg['show_progress'] = {'aired': data.get('aired', 0), 'completed': data.get('completed', 0)}
-            last_ep = sg['episodes'][-1] if sg['episodes'] else None
+        if status != 200 or not data:
+            return
+        show_progress = {'aired': data.get('aired', 0), 'completed': data.get('completed', 0)}
+        for sg in groups:
+            sg['show_progress'] = show_progress
+            last_ep = sg['episodes'][0] if sg['episodes'] else None
             if last_ep:
                 for season in data.get('seasons', []):
                     if season.get('number') == last_ep.get('season'):
-                        sg['season_progress'] = {'aired': season.get('aired', 0), 'completed': season.get('completed', 0)}
+                        sg['season_progress'] = {
+                            'season':    last_ep.get('season'),
+                            'aired':     season.get('aired', 0),
+                            'completed': season.get('completed', 0),
+                        }
                         break
-        return sg
-    return list(await asyncio.gather(*[fetch_one(sg) for sg in show_groups]))
+
+    await asyncio.gather(*[fetch_and_apply(slug, groups) for slug, groups in slug_map.items()])
 
 
 # ---- per-category fetchers ----
@@ -351,11 +371,12 @@ async def _fetch_watching(token, client_id) -> list:
     t = data.get('type')
     if t == 'episode':
         show, ep = _show(data), _ep(data)
-        return [{'type': 'show_group', 'show': show.get('title'),
-                 'tmdb_id': _ids(show).get('tmdb'), 'trakt_slug': _ids(show).get('slug'),
-                 'media_type': 'show',
-                 'episodes': [{'season': ep.get('season'), 'episode': ep.get('number'),
-                               'title': ep.get('title'), 'overview': ep.get('overview')}]}]
+        show_groups = [{'type': 'show_group', 'show': show.get('title'),
+                        'tmdb_id': _ids(show).get('tmdb'), 'trakt_slug': _ids(show).get('slug'),
+                        'media_type': 'show',
+                        'episodes': [{'season': ep.get('season'), 'episode': ep.get('number'),
+                                      'title': ep.get('title'), 'overview': ep.get('overview')}]}]
+        return show_groups
     if t == 'movie':
         m = _movie(data)
         return [{'type': 'movie', 'title': m.get('title'), 'year': m.get('year'),
@@ -373,7 +394,7 @@ async def _fetch_continue_watching(token, client_id) -> list:
         'title': _ep(i).get('title'), 'overview': _ep(i).get('overview'),
         'progress': round(i.get('progress', 0)),
     })
-    show_groups = await _enrich_progress(show_groups, token, client_id)
+
     movies = _dedupe_movies(movs or [], lambda i: {
         'type': 'movie', 'title': _movie(i).get('title'), 'year': _movie(i).get('year'),
         'overview': _movie(i).get('overview'), 'progress': round(i.get('progress', 0)),
@@ -392,6 +413,7 @@ async def _fetch_recently_watched(token, client_id) -> list:
         'title': _ep(i).get('title'), 'overview': _ep(i).get('overview'),
         'watched_at': i.get('watched_at'),
     })
+
     movies = _dedupe_movies(movs or [], lambda i: {
         'type': 'movie', 'title': _movie(i).get('title'), 'year': _movie(i).get('year'),
         'overview': _movie(i).get('overview'), 'watched_at': i.get('watched_at'),
@@ -527,22 +549,18 @@ async def trakt_tv_data(
     if not token or not client_id:
         raise HTTPException(status_code=401, detail='Missing Authorization or trakt-api-key header')
 
-    # watching is always fetched — it auto-appears at the top when active, disappears when idle
-    cats = [c for c in (c.strip() for c in categories.split(','))
-            if c in VALID_CATEGORIES and c != 'watching']
+    cats = [c for c in (c.strip() for c in categories.split(',')) if c in VALID_CATEGORIES]
     if not cats:
         cats = ['continue_watching', 'recently_watched', 'upcoming', 'recommended']
 
     today = datetime.utcnow().strftime('%Y-%m-%d')
 
-    # Fetch user, stats, watching, and all priority categories concurrently
     results = await asyncio.gather(
         trakt_get('/users/me',       token, client_id),
         trakt_get('/users/me/stats', token, client_id),
-        _fetch_watching(token, client_id),
         *[fetch_category(cat, token, client_id, today) for cat in cats],
     )
-    (_, user_data), (_, stats_data), watching_items, *cat_items = results
+    (_, user_data), (_, stats_data), *cat_items = results
 
     user_data  = user_data  or {}
     stats_data = stats_data or {}
@@ -550,35 +568,26 @@ async def trakt_tv_data(
     mov_stats  = stats_data.get('movies')   or {}
     show_stats = stats_data.get('shows')    or {}
 
-    # Resolve image URLs for all items across all categories concurrently
-    all_items = watching_items + [item for items in cat_items for item in items]
+    await enrich_progress_all(cat_items, token, client_id)
+
+    all_items = [item for items in cat_items for item in items]
     enriched  = await enrich_images(all_items)
 
-    # Re-split enriched items back into per-category lists
-    w_count       = len(watching_items)
-    enriched_watching = enriched[:w_count]
-    rest          = enriched[w_count:]
     idx = 0
     enriched_cats = []
     for items in cat_items:
         n = len(items)
-        enriched_cats.append(rest[idx:idx + n])
+        enriched_cats.append(enriched[idx:idx + n])
         idx += n
 
-    categories_out = {}
+    categories_out = []
     has_content    = False
-
-    # Inject watching first if something is playing
-    if enriched_watching:
-        has_content = True
-        categories_out['watching'] = {'key': 'watching', 'title': CATEGORY_TITLES['watching'], 'items': enriched_watching}
-
     for cat, items in zip(cats, enriched_cats):
         if items:
             has_content = True
-        categories_out[cat] = {'key': cat, 'title': CATEGORY_TITLES[cat], 'items': items}
+        categories_out.append({'key': cat, 'title': CATEGORY_TITLES[cat], 'items': items})
 
-    summary = {cat: len(v['items']) for cat, v in categories_out.items()}
+    summary = {c['key']: len(c['items']) for c in categories_out}
     logger.info(f"query response — user={user_data.get('username')!r} cats={summary} has_content={has_content}")
 
     return {

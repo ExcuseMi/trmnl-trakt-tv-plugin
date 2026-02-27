@@ -6,7 +6,7 @@
   <div class="flex flex--col flex--top gap--none w--full h--full">
     <div class="label label--underline w--full text--left m--0">{{show_group.show}}</div>
     {% for ep in show_group.episodes | limit: 3 %}
-    <div class="label label--small w--full text--left m--0"><strong data-clamp="3">S{{ep.season}}E{{ep.episode}}: {{ep.title}}{% if ep.watched_at %} ({{ep.watched_at | date: "%b %-d"}}){% endif %}{% if ep.progress %} ({{ep.progress}}%){% endif %}{% if ep.airs_at %} ({{ep.airs_at | date: "%b %-d"}}){% endif %}</strong></div>
+    <div class="label label--small w--full text--left m--0"><strong data-clamp="3">S{{ep.season}}E{{ep.episode}}: {{ep.title}}{% if ep.watched_at %} ({{ep.watched_at | date: "%b %-d"}}){% endif %}{% if ep.progress %} ({{ep.progress}}%){% endif %}{% if ep.airs_at %} ({{ep.airs_at | date: "%b %-d"}}){% endif %}{% if show_group.season_progress %} · S{{show_group.season_progress.season}}: {{show_group.season_progress.completed}}/{{show_group.season_progress.aired}}{% if show_group.show_progress %} · {{show_group.show_progress.completed}}/{{show_group.show_progress.aired}} total{% endif %}{% endif %}</strong></div>
     {% if show_group.episodes.size == 1 and ep.overview %}
     <span class="description" data-clamp="{{desc_clamp}}" data-clamp-lg="{{desc_clamp_lg}}" data-clamp-portrait="{{desc_clamp_portrait}}" data-clamp-lg-portrait="{{desc_clamp_lg_portrait}}">{{ep.overview | escape }}</span>
     {% endif %}
@@ -108,20 +108,10 @@ cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
 {% assign _dc_lp = _dc_lp | plus: _boost_lp %}
 {% endif %}
 
-{% comment %}— Priority order from user settings —{% endcomment %}
-{% assign _p1 = trmnl.plugin_settings.custom_fields_values.priority_1 | default: "continue_watching" | strip %}
-{% assign _p2 = trmnl.plugin_settings.custom_fields_values.priority_2 | default: "recently_watched"  | strip %}
-{% assign _p3 = trmnl.plugin_settings.custom_fields_values.priority_3 | default: "upcoming"          | strip %}
-{% assign _p4 = trmnl.plugin_settings.custom_fields_values.priority_4 | default: "recommended"       | strip %}
-{% assign _priority = _p1 | append: "," | append: _p2 | append: "," | append: _p3 | append: "," | append: _p4 | split: "," %}
-
 <div class="layout layout--col m--0 p--0 layout--stretch">
   <div class="flex flex--col gap--none  h--full" data-overflow="true">
 
-    {% assign _rendered = "" %}
-    {% for key in _priority %}
-    {% unless _rendered contains key %}
-    {% assign cat = data.categories[key] %}
+    {% for cat in data.categories %}
     {% if cat.items.size > 0 %}
 
     <div class="item h--min-40 m--1" style="flex-grow:0;align-items:stretch;border:2px solid #000;box-shadow:4px 4px 0 0 #000;">
@@ -157,9 +147,7 @@ cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
                 </div>
                 </div>
 
-                  {% assign _rendered = _rendered | append: key | append: "," %}
                   {% endif %}
-                  {% endunless %}
                   {% endfor %}
 
                 </div>
