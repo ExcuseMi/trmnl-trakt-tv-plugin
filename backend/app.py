@@ -471,7 +471,7 @@ def _build_stat_items(stats_data: dict, top_movies: list = None, top_shows: list
 
     # Ratings stats
     total = ratings.get('total', 0)
-    if total:
+    if total > 0:
         items.append({
             'type': 'stat',
             'label': 'Ratings',
