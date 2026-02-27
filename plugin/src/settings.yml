@@ -15,17 +15,16 @@ custom_fields:
   description: |
     Track your Trakt.tv activity right on your TRMNL device.<br /><br />
     <strong>Available categories</strong><br />
-    · <strong>Now Watching</strong> — currently playing<br />
-    · <strong>Continue Watching / Paused</strong> — paused shows &amp; movies <em>(self only)</em><br />
-    · <strong>Recently Watched</strong> — your watch history <em>(self only)</em><br />
-    · <strong>Upcoming</strong> — next episodes &amp; releases <em>(self only)</em><br />
-    · <strong>Recommended</strong> — personalized picks from Trakt <em>(self only)</em><br />
-    · <strong>Watchlist</strong> — saved items<br />
     · <strong>Collection</strong> — collected media<br />
+    · <strong>Continue Watching / Paused</strong> — paused shows &amp; movies <em>(self only)</em><br />
+    · <strong>Now Watching</strong> — currently playing<br />
+    · <strong>Recently Watched</strong> — your watch history <em>(self only)</em><br />
+    · <strong>Recommended</strong> — personalized picks from Trakt <em>(self only)</em><br />
     · <strong>Stats</strong> — watch statistics<br />
-    · <strong>Trending</strong> — what's popular right now<br /><br />
-    <strong>Requires Trakt.tv OAuth</strong>
-  category: entertainment
+    · <strong>Trending</strong> — what's popular right now<br />
+    · <strong>Upcoming</strong> — next episodes &amp; releases <em>(self only)</em><br />
+    · <strong>Watchlist</strong> — saved items<br /><br />
+    <strong>Requires Trakt.tv OAuth</strong><br /><br /><br />Pick the order you want your categories to appear using the dropdowns.<br />Don't worry about empty categories—they'll be automatically skipped, and the next one with data will show instead.<br /><br />Icons by <a href="https://www.svgrepo.com">SVG Repo</a>  category: entertainment
   github_url: https://github.com/ExcuseMi/trmnl-trakt-tv-plugin
   learn_more_url: https://trakt.tv/
   help_text: TRMNL X Ready
@@ -34,15 +33,15 @@ custom_fields:
   name: 1st Category
   description: Category shown in the first position.
   options:
-  - Now Watching: watching
-  - Continue Watching / Paused: continue_watching
-  - Recently Watched: recently_watched
-  - Upcoming: upcoming
-  - Recommended: recommended
-  - Watchlist: watchlist
   - Collection: collection
+  - Continue Watching / Paused: continue_watching
+  - Now Watching: watching
+  - Recently Watched: recently_watched
+  - Recommended: recommended
   - Stats: stats
   - Trending: trending
+  - Upcoming: upcoming
+  - Watchlist: watchlist
   - None: none
   default: continue_watching
 - keyname: priority_2
@@ -50,15 +49,15 @@ custom_fields:
   name: 2nd Category
   description: Category shown in the second position.
   options:
-  - Now Watching: watching
-  - Continue Watching / Paused: continue_watching
-  - Recently Watched: recently_watched
-  - Upcoming: upcoming
-  - Recommended: recommended
-  - Watchlist: watchlist
   - Collection: collection
+  - Continue Watching / Paused: continue_watching
+  - Now Watching: watching
+  - Recently Watched: recently_watched
+  - Recommended: recommended
   - Stats: stats
   - Trending: trending
+  - Upcoming: upcoming
+  - Watchlist: watchlist
   - None: none
   default: recently_watched
 - keyname: priority_3
@@ -66,15 +65,15 @@ custom_fields:
   name: 3rd Category
   description: Category shown in the third position.
   options:
-  - Now Watching: watching
-  - Continue Watching / Paused: continue_watching
-  - Recently Watched: recently_watched
-  - Upcoming: upcoming
-  - Recommended: recommended
-  - Watchlist: watchlist
   - Collection: collection
+  - Continue Watching / Paused: continue_watching
+  - Now Watching: watching
+  - Recently Watched: recently_watched
+  - Recommended: recommended
   - Stats: stats
   - Trending: trending
+  - Upcoming: upcoming
+  - Watchlist: watchlist
   - None: none
   default: upcoming
 - keyname: priority_4
@@ -82,15 +81,15 @@ custom_fields:
   name: 4th Category
   description: Category shown in the fourth position.
   options:
-  - Now Watching: watching
-  - Continue Watching / Paused: continue_watching
-  - Recently Watched: recently_watched
-  - Upcoming: upcoming
-  - Recommended: recommended
-  - Watchlist: watchlist
   - Collection: collection
+  - Continue Watching / Paused: continue_watching
+  - Now Watching: watching
+  - Recently Watched: recently_watched
+  - Recommended: recommended
   - Stats: stats
   - Trending: trending
+  - Upcoming: upcoming
+  - Watchlist: watchlist
   - None: none
   default: recommended
 - keyname: priority_5
@@ -98,22 +97,22 @@ custom_fields:
   name: 5th Category
   description: Category shown in the fifth position.
   options:
-  - Now Watching: watching
-  - Continue Watching / Paused: continue_watching
-  - Recently Watched: recently_watched
-  - Upcoming: upcoming
-  - Recommended: recommended
-  - Watchlist: watchlist
   - Collection: collection
+  - Continue Watching / Paused: continue_watching
+  - Now Watching: watching
+  - Recently Watched: recently_watched
+  - Recommended: recommended
   - Stats: stats
   - Trending: trending
+  - Upcoming: upcoming
+  - Watchlist: watchlist
   - None: none
   default: none
   optional: true
 - keyname: username
-  field_type: text
+  field_type: string
   name: Target Username
-  description: Trakt.tv username to display.<br />Leave empty to show your own account.
+  description: Trakt.tv username to display.<br /><strong>Leave empty to show your own account.</strong>
   help_text: 'Note: Continue Watching, Recently Watched, Upcoming, Stats  and Recommended are only available for your own account.'
   optional: true
 - keyname: show_images
