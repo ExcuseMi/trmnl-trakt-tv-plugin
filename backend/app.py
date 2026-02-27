@@ -263,8 +263,11 @@ CATEGORY_TITLES = {
     'recommended':       'Recommended',
     'watchlist':         'Watchlist',
     'collection':        'Collection',
+    'stats':             'Stats',
+    'trending':          'Trending',
 }
-VALID_CATEGORIES = set(CATEGORY_TITLES)
+VALID_CATEGORIES      = set(CATEGORY_TITLES)
+SELF_ONLY_CATEGORIES  = {'continue_watching', 'recently_watched', 'upcoming', 'recommended'}
 
 
 async def trakt_get(path: str, token: str, client_id: str, params: dict = None) -> tuple[int, any]:
@@ -392,10 +395,105 @@ async def enrich_progress_all(cat_items: list[list], token: str, client_id: str)
             _restructure_seasons(sg, {})
 
 
+# ---- stat / trending helpers ----
+
+def _build_stat_items(stats_data: dict) -> list:
+    """Build display items from a Trakt /users/{user}/stats response."""
+    items   = []
+    movies  = stats_data.get('movies')   or {}
+    shows   = stats_data.get('shows')    or {}
+    eps     = stats_data.get('episodes') or {}
+    net     = stats_data.get('network')  or {}
+    ratings = stats_data.get('ratings')  or {}
+
+    if movies:
+        parts = []
+        if movies.get('watched'):   parts.append(f"{movies['watched']} watched")
+        if movies.get('plays'):     parts.append(f"{movies['plays']} plays")
+        h = (movies.get('minutes') or 0) // 60
+        if h: parts.append(f"{h}h")
+        if movies.get('collected'): parts.append(f"{movies['collected']} collected")
+        if parts:
+            items.append({'type': 'stat', 'label': 'Movies', 'line': ' · '.join(parts)})
+
+    if eps:
+        parts = []
+        if eps.get('watched'):   parts.append(f"{eps['watched']} watched")
+        if eps.get('plays'):     parts.append(f"{eps['plays']} plays")
+        h = (eps.get('minutes') or 0) // 60
+        if h: parts.append(f"{h}h")
+        if eps.get('collected'): parts.append(f"{eps['collected']} collected")
+        if parts:
+            items.append({'type': 'stat', 'label': 'Episodes', 'line': ' · '.join(parts)})
+
+    if shows:
+        parts = []
+        if shows.get('watched'):   parts.append(f"{shows['watched']} watched")
+        if shows.get('collected'): parts.append(f"{shows['collected']} collected")
+        if shows.get('ratings'):   parts.append(f"{shows['ratings']} rated")
+        if parts:
+            items.append({'type': 'stat', 'label': 'Shows', 'line': ' · '.join(parts)})
+
+    if net:
+        parts = []
+        if net.get('friends'):   parts.append(f"{net['friends']} friends")
+        if net.get('followers'): parts.append(f"{net['followers']} followers")
+        if net.get('following'): parts.append(f"{net['following']} following")
+        if parts:
+            items.append({'type': 'stat', 'label': 'Network', 'line': ' · '.join(parts)})
+
+    total = ratings.get('total', 0)
+    if total:
+        items.append({'type': 'stat', 'label': 'Ratings', 'line': f"{total} rated"})
+
+    return items
+
+
+async def _fetch_trending(token, client_id) -> list:
+    (_, shows), (_, movs) = await asyncio.gather(
+        trakt_get('/shows/trending', token, client_id, {'limit': 10, 'extended': 'full'}),
+        trakt_get('/movies/trending', token, client_id, {'limit': 10, 'extended': 'full'}),
+    )
+    def _rating(obj): return round(obj['rating'] * 10) / 10 if obj.get('rating') else None
+
+    trend_shows, seen = [], set()
+    for item in (shows or []):
+        s = _show(item)
+        if s.get('title') not in seen:
+            seen.add(s.get('title'))
+            trend_shows.append({
+                'type': 'show', 'title': s.get('title'), 'year': s.get('year'),
+                'genres': s.get('genres') or [], 'overview': s.get('overview'),
+                'rating': _rating(s), 'network': s.get('network'),
+                'watchers': item.get('watchers'),
+                'tmdb_id': _ids(s).get('tmdb'), 'media_type': 'show',
+            })
+
+    trend_movs, seen = [], set()
+    for item in (movs or []):
+        m   = _movie(item)
+        key = f"{m.get('title')}-{m.get('year')}"
+        if key not in seen:
+            seen.add(key)
+            trend_movs.append({
+                'type': 'movie', 'title': m.get('title'), 'year': m.get('year'),
+                'genres': m.get('genres') or [], 'overview': m.get('overview'),
+                'rating': _rating(m), 'watchers': item.get('watchers'),
+                'tmdb_id': _ids(m).get('tmdb'), 'media_type': 'movie',
+            })
+
+    result = []
+    for i in range(max(len(trend_shows), len(trend_movs))):
+        if i < len(trend_movs):  result.append(trend_movs[i])
+        if i < len(trend_shows): result.append(trend_shows[i])
+    return result
+
+
 # ---- per-category fetchers ----
 
-async def _fetch_watching(token, client_id) -> list:
-    status, data = await trakt_get('/users/me/watching', token, client_id)
+async def _fetch_watching(token, client_id, username: str = '') -> list:
+    target = username or 'me'
+    status, data = await trakt_get(f'/users/{target}/watching', token, client_id)
     if status != 200 or not data:
         return []
     t = data.get('type')
@@ -501,10 +599,11 @@ async def _fetch_recommended(token, client_id) -> list:
     return result
 
 
-async def _fetch_list(cat: str, token: str, client_id: str) -> list:
+async def _fetch_list(cat: str, token: str, client_id: str, username: str = '') -> list:
+    target = username or 'me'
     (_, raw_shows), (_, raw_movs) = await asyncio.gather(
-        trakt_get(f'/users/me/{cat}/shows',  token, client_id, {'extended': 'full'}),
-        trakt_get(f'/users/me/{cat}/movies', token, client_id, {'extended': 'full'}),
+        trakt_get(f'/users/{target}/{cat}/shows',  token, client_id, {'extended': 'full'}),
+        trakt_get(f'/users/{target}/{cat}/movies', token, client_id, {'extended': 'full'}),
     )
     def _rating(obj): return round(obj['rating'] * 10) / 10 if obj.get('rating') else None
 
@@ -548,13 +647,14 @@ async def _fetch_list(cat: str, token: str, client_id: str) -> list:
     return shows + movs
 
 
-async def fetch_category(cat: str, token: str, client_id: str, today: str) -> list:
-    if cat == 'watching':          return await _fetch_watching(token, client_id)
+async def fetch_category(cat: str, token: str, client_id: str, today: str, username: str = '') -> list:
+    if cat == 'watching':          return await _fetch_watching(token, client_id, username)
     if cat == 'continue_watching': return await _fetch_continue_watching(token, client_id)
     if cat == 'recently_watched':  return await _fetch_recently_watched(token, client_id)
     if cat == 'upcoming':          return await _fetch_upcoming(token, client_id, today)
     if cat == 'recommended':       return await _fetch_recommended(token, client_id)
-    if cat in ('watchlist', 'collection'): return await _fetch_list(cat, token, client_id)
+    if cat in ('watchlist', 'collection'): return await _fetch_list(cat, token, client_id, username)
+    if cat == 'trending':          return await _fetch_trending(token, client_id)
     return []
 
 
@@ -585,13 +685,15 @@ async def health():
 async def trakt_tv_data(
     request: Request,
     categories: str = Query(default=''),
+    username:   str = Query(default=''),
     _=Depends(require_whitelisted_ip),
 ):
     """
     Aggregate Trakt.tv data for the TRMNL plugin.
 
     Headers:  Authorization: Bearer {token}   trakt-api-key: {client_id}
-    Params:   categories=watching,continue_watching,recently_watched,…
+    Params:   categories=watching,continue_watching,…
+              username=someone   (optional; self-only categories are skipped)
     """
     token     = request.headers.get('Authorization', '').removeprefix('Bearer ').strip()
     client_id = request.headers.get('trakt-api-key', '').strip()
@@ -602,24 +704,35 @@ async def trakt_tv_data(
         raise HTTPException(status_code=403, detail='Access denied')
 
     cats = [c for c in (c.strip() for c in categories.split(',')) if c in VALID_CATEGORIES]
+    if username:
+        cats = [c for c in cats if c not in SELF_ONLY_CATEGORIES]
     if not cats:
-        cats = ['continue_watching', 'recently_watched', 'upcoming', 'recommended']
+        cats = ['watching', 'watchlist', 'collection'] if username else \
+               ['continue_watching', 'recently_watched', 'upcoming', 'recommended']
 
-    cache_key = 'query_v1:' + hashlib.md5(f'{token}:{client_id}:{",".join(cats)}'.encode()).hexdigest()
+    cache_key = 'query_v1:' + hashlib.md5(
+        f'{token}:{client_id}:{",".join(cats)}:{username}'.encode()
+    ).hexdigest()
     if redis_client:
         cached = await redis_client.get(cache_key)
         if cached:
-            logger.debug(f"query cache hit — user cached")
+            logger.debug("query cache hit")
             return json.loads(cached)
 
-    today = datetime.utcnow().strftime('%Y-%m-%d')
+    today      = datetime.utcnow().strftime('%Y-%m-%d')
+    stats_path = f'/users/{username}/stats' if username else '/users/me/stats'
+
+    # stats is built from already-fetched stats_data — don't pass it to fetch_category
+    non_stats_cats = [c for c in cats if c != 'stats']
 
     results = await asyncio.gather(
-        trakt_get('/users/me',       token, client_id),
-        trakt_get('/users/me/stats', token, client_id),
-        *[fetch_category(cat, token, client_id, today) for cat in cats],
+        trakt_get('/users/me',             token, client_id),
+        trakt_get(stats_path,              token, client_id),
+        trakt_get('/sync/ratings/movies',  token, client_id),
+        trakt_get('/sync/ratings/shows',   token, client_id),
+        *[fetch_category(cat, token, client_id, today, username) for cat in non_stats_cats],
     )
-    (_, user_data), (_, stats_data), *cat_items = results
+    (_, user_data), (_, stats_data), (_, rated_movies), (_, rated_shows), *cat_items = results
 
     user_data  = user_data  or {}
     stats_data = stats_data or {}
@@ -627,7 +740,20 @@ async def trakt_tv_data(
     mov_stats  = stats_data.get('movies')   or {}
     show_stats = stats_data.get('shows')    or {}
 
+    # Build favorites sets from ratings ≥ 8
+    fav_movie_ids = {_ids(_movie(i)).get('tmdb') for i in (rated_movies or []) if i.get('rating', 0) >= 8} - {None}
+    fav_show_ids  = {_ids(_show(i)).get('tmdb')  for i in (rated_shows  or []) if i.get('rating', 0) >= 8} - {None}
+
     await enrich_progress_all(cat_items, token, client_id)
+
+    # Mark favorites
+    for items in cat_items:
+        for item in items:
+            tid = item.get('tmdb_id')
+            if item.get('type') == 'movie' and tid in fav_movie_ids:
+                item['favorited'] = True
+            elif item.get('type') in ('show', 'show_group') and tid in fav_show_ids:
+                item['favorited'] = True
 
     all_items = [item for items in cat_items for item in items]
     enriched  = await enrich_images(all_items)
@@ -641,13 +767,19 @@ async def trakt_tv_data(
 
     categories_out = []
     has_content    = False
-    for cat, items in zip(cats, enriched_cats):
+    non_stats_idx  = 0
+    for cat in cats:
+        if cat == 'stats':
+            items = _build_stat_items(stats_data)
+        else:
+            items = enriched_cats[non_stats_idx]
+            non_stats_idx += 1
         if items:
             has_content = True
         categories_out.append({'key': cat, 'title': CATEGORY_TITLES[cat], 'items': items})
 
     summary = {c['key']: len(c['items']) for c in categories_out}
-    logger.info(f"query response — user={user_data.get('username')!r} cats={summary} has_content={has_content}")
+    logger.info(f"query — user={user_data.get('username')!r} target={username!r} cats={summary}")
 
     result = {
         'data': {
