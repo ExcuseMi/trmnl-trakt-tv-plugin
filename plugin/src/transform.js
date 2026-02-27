@@ -18,8 +18,13 @@ function transform(input) {
     return true;
   });
 
+  // IDX_0 = /users/me, IDX_1 = /users/me/stats; category URLs start at IDX_2
+  // Single-object responses are stored directly (no .data wrapper)
+  const user  = input.IDX_0 || {};
+  const stats = input.IDX_1 || {};
+
   const catBase = {};
-  activeCats.forEach((cat, i) => { catBase[cat] = i * 2; });
+  activeCats.forEach((cat, i) => { catBase[cat] = 2 + i * 2; });
 
   function idx(cat, offset) {
     const base = catBase[cat];
@@ -130,8 +135,8 @@ function transform(input) {
   const _recMovies = Array.from(recommendedMoviesSeen.values());
   const recommended = [];
   for (let i = 0; i < Math.max(_recShows.length, _recMovies.length); i++) {
-    if (i < _recShows.length)  recommended.push(_recShows[i]);
     if (i < _recMovies.length) recommended.push(_recMovies[i]);
+    if (i < _recShows.length)  recommended.push(_recShows[i]);
   }
 
   const watchlistShowsSeen = new Map();
@@ -200,11 +205,17 @@ function transform(input) {
   return {
     data: {
       image_base_url: IMAGE_BASE_URL,
+      user: { username: user.username || null },
+      stats: {
+        hours_watched:    Math.floor((stats.episodes?.minutes || 0) / 60),
+        movies_collected: stats.movies?.collected || 0,
+        shows_collected:  stats.shows?.collected  || 0,
+      },
       categories: {
         continue_watching: { key: 'continue_watching', title: 'Watching',    items: continueWatching },
-        recently_watched:  { key: 'recently_watched',  title: 'History',     items: recentlyWatched },
+        recently_watched:  { key: 'recently_watched',  title: 'Watched',     items: recentlyWatched },
         upcoming:          { key: 'upcoming',           title: 'Upcoming',    items: upcoming },
-        recommended:       { key: 'recommended',        title: 'Picks',       items: recommended },
+        recommended:       { key: 'recommended',        title: 'Recommended', items: recommended },
         watchlist:         { key: 'watchlist',          title: 'Watchlist',   items: watchlist },
         collection:        { key: 'collection',         title: 'Collection',  items: collection },
       },
