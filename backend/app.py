@@ -324,42 +324,66 @@ def _dedupe_movies(items: list, mapper) -> list:
     return [seen[k] for k in order]
 
 
+def _restructure_seasons(sg: dict, seasons_progress: dict):
+    """Replace flat 'episodes' with a 'seasons' array, each entry carrying its own progress."""
+    eps_by_season: dict[str, list] = {}
+    for ep in sg.pop('episodes', []):
+        sn = str(ep.get('season', 0))
+        eps_by_season.setdefault(sn, []).append(ep)
+    sg['seasons'] = [
+        {
+            'number':   int(sn) if sn.isdigit() else 0,
+            'progress': seasons_progress.get(sn),
+            'episodes': eps,
+        }
+        for sn, eps in eps_by_season.items()
+    ]
+
+
 async def enrich_progress_all(cat_items: list[list], token: str, client_id: str):
     """
-    Fetch /shows/:slug/progress/watched once per unique slug across all categories,
-    then apply season_progress + show_progress to every matching show_group in-place.
+    Fetch /shows/:slug/progress/watched once per unique slug across all categories.
+    Restructures each show_group's flat 'episodes' list into a 'seasons' array with
+    per-season progress attached. Also attaches overall show_progress to the group.
     """
-    # Collect all show_groups and group by slug
     slug_map: dict[str, list] = {}
+    all_show_groups: list = []
     for items in cat_items:
         for item in items:
             if item.get('type') == 'show_group':
+                all_show_groups.append(item)
                 slug = item.get('trakt_slug')
                 if slug:
                     slug_map.setdefault(slug, []).append(item)
 
-    if not slug_map:
+    if not all_show_groups:
         return
 
     async def fetch_and_apply(slug: str, groups: list):
         status, data = await trakt_get(f"/shows/{slug}/progress/watched", token, client_id)
-        if status != 200 or not data:
-            return
-        show_progress = {'aired': data.get('aired', 0), 'completed': data.get('completed', 0)}
+        show_progress    = None
+        seasons_progress = {}
+        if status == 200 and data:
+            show_progress    = {'aired': data.get('aired', 0), 'completed': data.get('completed', 0)}
+            seasons_progress = {
+                str(s.get('number')): {'aired': s.get('aired', 0), 'completed': s.get('completed', 0)}
+                for s in data.get('seasons', [])
+            }
+            logger.debug(f"progress {slug}: {show_progress['completed']}/{show_progress['aired']} seasons={list(seasons_progress)}")
+        else:
+            logger.debug(f"progress {slug}: no data (status={status})")
         for sg in groups:
             sg['show_progress'] = show_progress
-            last_ep = sg['episodes'][0] if sg['episodes'] else None
-            if last_ep:
-                for season in data.get('seasons', []):
-                    if season.get('number') == last_ep.get('season'):
-                        sg['season_progress'] = {
-                            'season':    last_ep.get('season'),
-                            'aired':     season.get('aired', 0),
-                            'completed': season.get('completed', 0),
-                        }
-                        break
+            _restructure_seasons(sg, seasons_progress)
 
     await asyncio.gather(*[fetch_and_apply(slug, groups) for slug, groups in slug_map.items()])
+
+    # Restructure any show_groups that had no slug (no progress fetch)
+    slugged = {id(sg) for groups in slug_map.values() for sg in groups}
+    for sg in all_show_groups:
+        if id(sg) not in slugged:
+            sg['show_progress'] = None
+            _restructure_seasons(sg, {})
 
 
 # ---- per-category fetchers ----
