@@ -110,8 +110,8 @@ custom_fields:
   description: Choose how dates should be displayed throughout the interface.
   options:
   - MM/DD/YYYY (12/25/2023): "%m/%d/%Y"
-  - DD/MM/YYYY (25/12/2023): "%d/%m/%Y"
-  default: "%m/%d/%Y"
+  - YYYY/MM/DD (2024/12/26): "%Y/%m/%d"
+  default: "%Y/%m/%d"
   optional: true
 - keyname: time_format
   field_type: select
