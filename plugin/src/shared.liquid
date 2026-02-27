@@ -11,8 +11,8 @@
     <div class="label label--small w--full text--left m--0"><i>S{{season.number}}{% if show_group.total_seasons > 1 %} of {{show_group.total_seasons}}{% endif %} · E{{season.progress.completed}} of {{season.progress.aired}} {% if show_group.show_progress and show_group.show_progress.completed > 0 %} ({% assign _show_pct = show_group.show_progress.completed | times: 100 | divided_by: show_group.show_progress.aired %}{{_show_pct}}%{% endif %})</i></div>
     {% endif %}
     {% for ep in season.episodes | limit: 3 %}
-    <div class="label label--small w--full text--left m--0"><strong data-clamp="3">S{{season.number}}E{{ep.episode}}: {{ep.title}}{% if ep.watched_at %} ({{ep.watched_at | date: "%b %-d"}}){% endif %}{% if ep.progress %} ({{ep.progress}}%){% endif %}
-    {% if ep.airs_at %}
+    <div class="label label--small w--full text--left m--0"><strong data-clamp="3">
+        {% if ep.airs_at %}
           {% liquid
             assign now_timestamp = trmnl.system.timestamp_utc
             assign timestamp = ep.airs_at | date: "%s" | plus: 0
@@ -28,6 +28,7 @@
             {{ timestamp | date: "%b %-d" }}
           {% endif %}
     {% endif %}
+    S{{season.number}}E{{ep.episode}}: {{ep.title}}{% if ep.watched_at %} ({{ep.watched_at | date: "%b %-d"}}){% endif %}{% if ep.progress %} ({{ep.progress}}%){% endif %}
 
     </strong></div>
     {% if season.episodes.size == 1 and ep.overview %}
@@ -224,7 +225,7 @@ cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
                   {% assign _ic = _ic | strip %}
 
                   <div{% if _ic != "" %} class="{{_ic}}"{% endif %}>
-                    {% if item.type == "show_group" %}{% render "show_group_item", show_group: item, data: data, img_class: img_class, show_images: _show_images, desc_clamp: _dc, desc_clamp_lg: _dc_lg, desc_clamp_portrait: _dc_p, desc_clamp_lg_portrait: _dc_lp %}
+                    {% if item.type == "show_group" %}{% render "show_group_item", show_group: item, data: data, img_class: img_class, show_images: _show_images, desc_clamp: _dc, desc_clamp_lg: _dc_lg, desc_clamp_portrait: _dc_p, desc_clamp_lg_portrait: _dc_lp, trmnl:trmnl %}
                     {% elsif item.type == "movie" %}{% render "movie_item", movie: item, data: data, img_class: img_class, show_images: _show_images, desc_clamp: _dc, desc_clamp_lg: _dc_lg, desc_clamp_portrait: _dc_p, desc_clamp_lg_portrait: _dc_lp, trmnl:trmnl %}
                     {% elsif item.type == "show" %}{% render "show_item", show: item, data: data, img_class: img_class, show_images: _show_images, desc_clamp: _dc, desc_clamp_lg: _dc_lg, desc_clamp_portrait: _dc_p, desc_clamp_lg_portrait: _dc_lp, trmnl:trmnl%}
                     {% elsif item.type == "stat" %}{% render "stat_item", stat: item, data: data, trmnl:trmnl %}
