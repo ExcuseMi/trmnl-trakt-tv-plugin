@@ -18,7 +18,7 @@
 {% assign _c    = 2 | plus: _e %}
 {% assign _c_lg = 3 | plus: _e %}
 {% assign _i    = 2 | plus: _e | times: item_multiplier %}
-{% assign _i_portait = 1 | times: item_multiplier_portrait %}
+{% assign _i_portrait = 1 | times: item_multiplier_portrait %}
 
 {% assign _i_lg = 3 | plus: _e | times: item_multiplier_lg  %}
 {% render "main",
@@ -31,7 +31,7 @@
   cols_lg_portrait: _c_lg,
   items: _i,
   items_lg: _i_lg ,
-  items_portrait: _i_portait,
+  items_portrait: _i_portrait,
   items_lg_portrait: _i_lg,
   desc_clamp: 5,
   desc_clamp_lg: 5,
