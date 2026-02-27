@@ -6,6 +6,9 @@
 {% assign item_multiplier_portrait = 1 %}
 
 {% if cats == 2 %}
+{% if _si == "false" %}
+{% assign item_multiplier_portrait = 3 %}
+{% endif %}
 {% assign item_multiplier_lg = 2 %}
 {% elsif cats == 1 %}
   {% assign item_multiplier_lg = 3 %}

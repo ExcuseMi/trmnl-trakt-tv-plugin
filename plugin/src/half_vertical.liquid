@@ -6,17 +6,22 @@
 {% assign item_multiplier_lg_portrait = 1 %}
 
 {% if cats == 2 %}
-{% assign item_multiplier_lg = 1 %}
+{% if _si == "false" %}
+{% assign item_multiplier_lg = 2 %}
+
+{% endif %}
+{% assign item_multiplier_portrait = 2 %}
+
 {% assign item_multiplier_lg_portrait = 2 %}
 
 {% elsif cats == 1 %}
 {% assign item_multiplier_lg = 2 %}
-{% assign item_multiplier_portrait = 2 %}
+{% assign item_multiplier_portrait = 3 %}
 {% assign item_multiplier_lg_portrait = 4 %}
 {% endif %}
-{% assign _i    = 2  | times: item_multiplier %}
+{% assign _i    = 1  | times: item_multiplier %}
 {% assign _i_lg = 2  | times: item_multiplier_lg %}
-{% assign _i_portrait = 2  | times: item_multiplier_portrait %}
+{% assign _i_portrait = 1  | times: item_multiplier_portrait %}
 {% assign _i_lg_portrait = 2  | times: item_multiplier_lg_portrait %}
 
 
