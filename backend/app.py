@@ -397,7 +397,7 @@ async def enrich_progress_all(cat_items: list[list], token: str, client_id: str)
 
 # ---- stat / trending helpers ----
 
-def _build_stat_items(stats_data: dict) -> list:
+def _build_stat_items(stats_data: dict, top_movies: list = None, top_shows: list = None) -> list:
     """Build display items from a Trakt /users/{user}/stats response."""
     items   = []
     movies  = stats_data.get('movies')   or {}
@@ -407,44 +407,74 @@ def _build_stat_items(stats_data: dict) -> list:
     ratings = stats_data.get('ratings')  or {}
 
     if movies:
+        values = []
         parts = []
-        if movies.get('watched'):   parts.append(f"{movies['watched']} watched")
-        if movies.get('plays'):     parts.append(f"{movies['plays']} plays")
+        if movies.get('watched'): parts.append(f"{movies['watched']} watched")
+        if movies.get('plays'):   parts.append(f"{movies['plays']} plays")
+        if parts: values.append(' · '.join(parts))
+        parts = []
         h = (movies.get('minutes') or 0) // 60
         if h: parts.append(f"{h}h")
         if movies.get('collected'): parts.append(f"{movies['collected']} collected")
-        if parts:
-            items.append({'type': 'stat', 'label': 'Movies', 'line': ' · '.join(parts)})
+        if parts: values.append(' · '.join(parts))
+        if values:
+            items.append({'type': 'stat', 'label': 'Movies', 'values': values})
 
     if eps:
+        values = []
         parts = []
-        if eps.get('watched'):   parts.append(f"{eps['watched']} watched")
-        if eps.get('plays'):     parts.append(f"{eps['plays']} plays")
+        if eps.get('watched'): parts.append(f"{eps['watched']} watched")
+        if eps.get('plays'):   parts.append(f"{eps['plays']} plays")
+        if parts: values.append(' · '.join(parts))
+        parts = []
         h = (eps.get('minutes') or 0) // 60
         if h: parts.append(f"{h}h")
         if eps.get('collected'): parts.append(f"{eps['collected']} collected")
-        if parts:
-            items.append({'type': 'stat', 'label': 'Episodes', 'line': ' · '.join(parts)})
+        if parts: values.append(' · '.join(parts))
+        if values:
+            items.append({'type': 'stat', 'label': 'Episodes', 'values': values})
 
     if shows:
+        values = []
         parts = []
         if shows.get('watched'):   parts.append(f"{shows['watched']} watched")
         if shows.get('collected'): parts.append(f"{shows['collected']} collected")
         if shows.get('ratings'):   parts.append(f"{shows['ratings']} rated")
-        if parts:
-            items.append({'type': 'stat', 'label': 'Shows', 'line': ' · '.join(parts)})
+        if parts: values.append(' · '.join(parts))
+        if values:
+            items.append({'type': 'stat', 'label': 'Shows', 'values': values})
 
     if net:
+        values = []
         parts = []
         if net.get('friends'):   parts.append(f"{net['friends']} friends")
         if net.get('followers'): parts.append(f"{net['followers']} followers")
         if net.get('following'): parts.append(f"{net['following']} following")
-        if parts:
-            items.append({'type': 'stat', 'label': 'Network', 'line': ' · '.join(parts)})
+        if parts: values.append(' · '.join(parts))
+        if values:
+            items.append({'type': 'stat', 'label': 'Network', 'values': values})
 
     total = ratings.get('total', 0)
     if total:
-        items.append({'type': 'stat', 'label': 'Ratings', 'line': f"{total} rated"})
+        items.append({'type': 'stat', 'label': 'Ratings', 'values': [f"{total} rated"]})
+
+    if top_movies:
+        m   = top_movies[0]
+        mov = m.get('movie') or {}
+        if mov.get('title'):
+            values = []
+            if m.get('plays'):   values.append(f"{m['plays']} plays")
+            if mov.get('year'):  values.append(str(mov['year']))
+            items.append({'type': 'stat', 'label': 'Top Movie', 'title': mov['title'], 'values': values})
+
+    if top_shows:
+        s    = top_shows[0]
+        show = s.get('show') or {}
+        if show.get('title'):
+            values = []
+            if s.get('plays'):    values.append(f"{s['plays']} plays")
+            if show.get('year'):  values.append(str(show['year']))
+            items.append({'type': 'stat', 'label': 'Top Show', 'title': show['title'], 'values': values})
 
     return items
 
@@ -769,16 +799,31 @@ async def trakt_tv_data(
     stats_path = f'/users/{username}/stats' if username else '/users/me/stats'
 
     # stats is built from already-fetched stats_data — don't pass it to fetch_category
+    has_stats      = 'stats' in cats
     non_stats_cats = [c for c in cats if c != 'stats']
+    target         = username or 'me'
+    watched_tasks  = [
+        trakt_get(f'/users/{target}/watched/movies', token, client_id),
+        trakt_get(f'/users/{target}/watched/shows',  token, client_id),
+    ] if has_stats else []
 
     results = await asyncio.gather(
         trakt_get('/users/me',             token, client_id),
         trakt_get(stats_path,              token, client_id),
         trakt_get('/sync/ratings/movies',  token, client_id),
         trakt_get('/sync/ratings/shows',   token, client_id),
+        *watched_tasks,
         *[fetch_category(cat, token, client_id, today, username) for cat in non_stats_cats],
     )
-    (_, user_data), (_, stats_data), (_, rated_movies), (_, rated_shows), *cat_items = results
+    if has_stats:
+        (_, user_data), (_, stats_data), (_, rated_movies), (_, rated_shows), \
+            (_, top_movies_raw), (_, top_shows_raw), *cat_items = results
+        top_movies = top_movies_raw[:1] if top_movies_raw else []
+        top_shows  = top_shows_raw[:1]  if top_shows_raw  else []
+    else:
+        (_, user_data), (_, stats_data), (_, rated_movies), (_, rated_shows), *cat_items = results
+        top_movies = []
+        top_shows  = []
 
     user_data  = user_data  or {}
     stats_data = stats_data or {}
@@ -816,7 +861,7 @@ async def trakt_tv_data(
     non_stats_idx  = 0
     for cat in cats:
         if cat == 'stats':
-            items = _build_stat_items(stats_data)
+            items = _build_stat_items(stats_data, top_movies, top_shows)
         else:
             items = [_slim_item(i) for i in enriched_cats[non_stats_idx]]
             non_stats_idx += 1
