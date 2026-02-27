@@ -527,19 +527,22 @@ async def trakt_tv_data(
     if not token or not client_id:
         raise HTTPException(status_code=401, detail='Missing Authorization or trakt-api-key header')
 
-    cats = [c for c in (c.strip() for c in categories.split(',')) if c in VALID_CATEGORIES]
+    # watching is always fetched — it auto-appears at the top when active, disappears when idle
+    cats = [c for c in (c.strip() for c in categories.split(','))
+            if c in VALID_CATEGORIES and c != 'watching']
     if not cats:
         cats = ['continue_watching', 'recently_watched', 'upcoming', 'recommended']
 
     today = datetime.utcnow().strftime('%Y-%m-%d')
 
-    # Fetch user, stats, and all categories concurrently
+    # Fetch user, stats, watching, and all priority categories concurrently
     results = await asyncio.gather(
         trakt_get('/users/me',       token, client_id),
         trakt_get('/users/me/stats', token, client_id),
+        _fetch_watching(token, client_id),
         *[fetch_category(cat, token, client_id, today) for cat in cats],
     )
-    (_, user_data), (_, stats_data), *cat_items = results
+    (_, user_data), (_, stats_data), watching_items, *cat_items = results
 
     user_data  = user_data  or {}
     stats_data = stats_data or {}
@@ -548,33 +551,43 @@ async def trakt_tv_data(
     show_stats = stats_data.get('shows')    or {}
 
     # Resolve image URLs for all items across all categories concurrently
-    all_items   = [item for items in cat_items for item in items]
-    enriched    = await enrich_images(all_items)
-    # Re-split back into per-category lists
+    all_items = watching_items + [item for items in cat_items for item in items]
+    enriched  = await enrich_images(all_items)
+
+    # Re-split enriched items back into per-category lists
+    w_count       = len(watching_items)
+    enriched_watching = enriched[:w_count]
+    rest          = enriched[w_count:]
     idx = 0
     enriched_cats = []
     for items in cat_items:
         n = len(items)
-        enriched_cats.append(enriched[idx:idx + n])
+        enriched_cats.append(rest[idx:idx + n])
         idx += n
 
     categories_out = {}
     has_content    = False
+
+    # Inject watching first if something is playing
+    if enriched_watching:
+        has_content = True
+        categories_out['watching'] = {'key': 'watching', 'title': CATEGORY_TITLES['watching'], 'items': enriched_watching}
+
     for cat, items in zip(cats, enriched_cats):
         if items:
             has_content = True
         categories_out[cat] = {'key': cat, 'title': CATEGORY_TITLES[cat], 'items': items}
 
-    return { 'data: ': {
-
-        'user':  {'username': user_data.get('username')},
-        'stats': {
-            'hours_watched':      math.floor(ep_stats.get('minutes', 0) / 60),
-            'episodes_collected': ep_stats.get('collected', 0),
-            'movies_collected':   mov_stats.get('collected', 0),
-            'shows_collected':    show_stats.get('collected', 0),
-        },
-        'categories':  categories_out,
-        'has_content': has_content,
+    return {
+        'data': {
+            'user':  {'username': user_data.get('username')},
+            'stats': {
+                'hours_watched':      math.floor(ep_stats.get('minutes', 0) / 60),
+                'episodes_collected': ep_stats.get('collected', 0),
+                'movies_collected':   mov_stats.get('collected', 0),
+                'shows_collected':    show_stats.get('collected', 0),
+            },
+            'categories':  categories_out,
+            'has_content': has_content,
+        }
     }
-}
