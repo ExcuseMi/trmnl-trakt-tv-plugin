@@ -456,28 +456,6 @@ def _build_stat_items(stats_data: dict, top_movies: list = None, top_shows: list
 
         if show_values:
             items.append({'type': 'stat', 'label': 'Shows', 'values': show_values})
-    # Network stats
-    if net:
-        network_values = []
-        if net.get('friends'):
-            network_values.append({'label': 'Friends', 'value': net['friends']})
-        if net.get('followers'):
-            network_values.append({'label': 'Followers', 'value': net['followers']})
-        if net.get('following'):
-            network_values.append({'label': 'Following', 'value': net['following']})
-
-        if network_values:
-            items.append({'type': 'stat', 'label': 'Network', 'values': network_values})
-
-    # Ratings stats
-    total = ratings.get('total', 0)
-    if total > 0:
-        items.append({
-            'type': 'stat',
-            'label': 'Ratings',
-            'values': [{'label': 'Total', 'value': total}]
-        })
-
     # Episodes stats
     if eps:
         episode_values = []
@@ -494,6 +472,19 @@ def _build_stat_items(stats_data: dict, top_movies: list = None, top_shows: list
 
         if episode_values:
             items.append({'type': 'stat', 'label': 'Episodes', 'values': episode_values})
+
+    # Network stats
+    if net:
+        network_values = []
+        if net.get('friends'):
+            network_values.append({'label': 'Friends', 'value': net['friends']})
+        if net.get('followers'):
+            network_values.append({'label': 'Followers', 'value': net['followers']})
+        if net.get('following'):
+            network_values.append({'label': 'Following', 'value': net['following']})
+
+        if network_values:
+            items.append({'type': 'stat', 'label': 'Network', 'values': network_values})
 
 
 
