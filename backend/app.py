@@ -256,9 +256,9 @@ async def enrich_images(items: list) -> list:
 # ============================================================================
 
 CATEGORY_TITLES = {
-    'watching':          'Live',
-    'continue_watching': 'Watching',
-    'recently_watched':  'Watched',
+    'watching':          'Now',
+    'continue_watching': 'On Hold',
+    'recently_watched':  'Recent',
     'upcoming':          'Upcoming',
     'recommended':       'Recommended',
     'watchlist':         'Watchlist',
