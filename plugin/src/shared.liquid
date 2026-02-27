@@ -80,7 +80,7 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
     </div>
 
     {% endif %}
-    <div class="label label--small w--full text--left m--0" ><strong data-clamp="3">{{movie.year}}{% if movie.genres.size > 0 %} · Movie{% endif %}{% unless movie.progress %}
+    <div class="label label--small w--full text--left m--0" ><strong class="w--full" >{{movie.year}}{% if movie.genres.size > 0 %} · Movie{% endif %}{% unless movie.progress %}
       {% if movie.watched_at %}
       ✔ {% render "date": datetime: movie.watched_at, trmnl:trmnl %}
 

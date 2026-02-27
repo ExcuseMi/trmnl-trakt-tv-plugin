@@ -1,20 +1,33 @@
 {% assign _si = trmnl.plugin_settings.custom_fields_values.show_images | default: "true" %}
 {% assign _e = 0 %}{% if _si == "false" %}{% assign _e = 1 %}{% endif %}
+{% assign cats = data.categories.size %}
+{% assign item_multiplier_lg = 1 %}
+{% assign item_multiplier = 1 %}
+{% assign item_multiplier_portrait = 1 %}
+
+{% if cats == 2 %}
+{% assign item_multiplier_lg = 2 %}
+{% elsif cats == 1 %}
+{% assign item_multiplier_lg = 2 %}
+{% assign item_multiplier_portrait = 2 %}
+
+{% endif %}
 {% assign _c    = 3 | plus: _e %}
 {% assign _c_lg = 3 | plus: _e %}
-{% assign _i    = 3 | plus: _e %}
-{% assign _i_lg = 3 | plus: _e %}
+{% assign _i    = 3 | plus: _e  | times: item_multiplier %}
+{% assign _i_lg = 3 | plus: _e | times: item_multiplier_lg %}
+{% assign _i_portrait = 2  | times: item_multiplier_portrait %}
 {% render "main",
   trmnl: trmnl,
   data: data,
   img_class: "h--auto h--max-44 lg:h--max-36 md:portrait:hidden",
   cols: _c,
   cols_lg: _c_lg,
-  cols_portrait: 3,
+  cols_portrait: 2,
   cols_lg_portrait: _c_lg,
   items: _i,
   items_lg: _i_lg,
-  items_portrait: 3,
+  items_portrait: _i_portrait,
   items_lg_portrait: _i_lg,
   desc_clamp: 3,
   desc_clamp_lg: 4,
