@@ -1,16 +1,12 @@
 {% template show_group_item %}
 <div class="flex flex--row flex--top gap--small">
   {% if show_group.tmdb_id and show_images != "false" %}
-  <div style="position:relative;display:inline-block;flex-shrink:0;"><img class="image image-dither {{img_class}}" src="{{data.image_base_url}}/image/{{show_group.media_type}}/{{show_group.tmdb_id}}"/>{% unless img_class == 'hidden' or img_class == ' hidden' %}<div style="position:absolute;bottom:3px;right:3px;background:white;border-radius:4px;padding:2px;line-height:0;"><svg width="14" height="14" viewBox="362 517 32 32" fill="currentColor"><path d="M387,535 C385.343,535 384,533.657 384,532 C384,530.343 385.343,529 387,529 C388.657,529 390,530.343 390,532 C390,533.657 388.657,535 387,535 L387,535 Z M389,542 L385,542 C384.447,542 384,541.553 384,541 C384,540.447 384.447,540 385,540 L389,540 C389.553,540 390,540.447 390,541 C390,541.553 389.553,542 389,542 L389,542 Z M389,545 L385,545 C384.447,545 384,544.553 384,544 C384,543.447 384.447,543 385,543 L389,543 C389.553,543 390,543.447 390,544 C390,544.553 389.553,545 389,545 L389,545 Z M382,543 C382,544.104 381.104,545 380,545 L368,545 C366.896,545 366,544.104 366,543 L366,531 C366,529.896 366.896,529 368,529 L380,529 C381.104,529 382,529.896 382,531 L382,543 L382,543 Z M390,525 L380.746,525 L389.518,518.965 C389.981,518.646 390.113,517.988 389.813,517.496 C389.514,517.004 388.895,516.863 388.431,517.182 C388.431,517.182 378.821,523.817 378.009,524.307 L367.569,517.182 C367.106,516.863 366.486,517.004 366.187,517.496 C365.887,517.988 366.019,518.646 366.482,518.965 L375.254,525 L366,525 C363.791,525 362,526.791 362,529 L362,545 C362,547.209 363.791,549 366,549 L390,549 C392.209,549 394,547.209 394,545 L394,529 C394,526.791 392.209,525 390,525 L390,525 Z M386,533 L388,533 L388,531 L386,531 L386,533 Z M379,531 L369,531 C368.447,531 368,531.448 368,532 L368,542 C368,542.553 368.447,543 369,543 L379,543 C379.553,543 380,542.553 380,542 L380,532 C380,531.448 379.553,531 379,531 L379,531 Z"/></svg></div>{% endunless %}</div>
+  <div style="position:relative;display:inline-block;flex-shrink:0;align-self:flex-start;overflow:hidden;"><img class="image image-dither image--contain {{img_class}}" src="{{data.image_base_url}}/image/{{show_group.media_type}}/{{show_group.tmdb_id}}"/>{% unless img_class == 'hidden' or img_class == ' hidden' %}<div style="position:absolute;bottom:3px;right:3px;background:white;border-radius:4px;padding:2px;line-height:0;filter:invert(1);"><svg class="image-stroke" width="18" height="18" viewBox="362 517 32 32" fill="currentColor"><path d="M387,535 C385.343,535 384,533.657 384,532 C384,530.343 385.343,529 387,529 C388.657,529 390,530.343 390,532 C390,533.657 388.657,535 387,535 L387,535 Z M389,542 L385,542 C384.447,542 384,541.553 384,541 C384,540.447 384.447,540 385,540 L389,540 C389.553,540 390,540.447 390,541 C390,541.553 389.553,542 389,542 L389,542 Z M389,545 L385,545 C384.447,545 384,544.553 384,544 C384,543.447 384.447,543 385,543 L389,543 C389.553,543 390,543.447 390,544 C390,544.553 389.553,545 389,545 L389,545 Z M382,543 C382,544.104 381.104,545 380,545 L368,545 C366.896,545 366,544.104 366,543 L366,531 C366,529.896 366.896,529 368,529 L380,529 C381.104,529 382,529.896 382,531 L382,543 L382,543 Z M390,525 L380.746,525 L389.518,518.965 C389.981,518.646 390.113,517.988 389.813,517.496 C389.514,517.004 388.895,516.863 388.431,517.182 C388.431,517.182 378.821,523.817 378.009,524.307 L367.569,517.182 C367.106,516.863 366.486,517.004 366.187,517.496 C365.887,517.988 366.019,518.646 366.482,518.965 L375.254,525 L366,525 C363.791,525 362,526.791 362,529 L362,545 C362,547.209 363.791,549 366,549 L390,549 C392.209,549 394,547.209 394,545 L394,529 C394,526.791 392.209,525 390,525 L390,525 Z M386,533 L388,533 L388,531 L386,531 L386,533 Z M379,531 L369,531 C368.447,531 368,531.448 368,532 L368,542 C368,542.553 368.447,543 369,543 L379,543 C379.553,543 380,542.553 380,542 L380,532 C380,531.448 379.553,531 379,531 L379,531 Z"/></svg></div>{% endunless %}</div>
   {% endif %}
   <div class="flex flex--col flex--top gap--none w--full h--full">
     <div class="label label--underline w--full text--left m--0">{{show_group.show}}</div>
     {% for ep in show_group.episodes | limit: 3 %}
-    <div class="label label--small w--full text--left m--0"><strong data-clamp="3">S{{ep.season}}E{{ep.episode}}: {{ep.title}}
-      {% if ep.watched_at %}({{ep.watched_at | date: "%b %-d"}}){% endif %}
-      {% if ep.progress %} ({{ep.progress}}%){% endif %}{% if ep.airs_at %} ({{ep.airs_at | date: "%b %-d"}}){% endif %}</strong>
-      
-    </div>
+    <div class="label label--small w--full text--left m--0"><strong data-clamp="3">S{{ep.season}}E{{ep.episode}}: {{ep.title}}{% if ep.watched_at %} ({{ep.watched_at | date: "%b %-d"}}){% endif %}{% if ep.progress %} ({{ep.progress}}%){% endif %}{% if ep.airs_at %} ({{ep.airs_at | date: "%b %-d"}}){% endif %}</strong></div>
     {% if show_group.episodes.size == 1 and ep.overview %}
     <span class="description" data-clamp="{{desc_clamp}}" data-clamp-lg="{{desc_clamp_lg}}" data-clamp-portrait="{{desc_clamp_portrait}}" data-clamp-lg-portrait="{{desc_clamp_lg_portrait}}">{{ep.overview | escape }}</span>
     {% endif %}
@@ -22,17 +18,12 @@
 {% template movie_item %}
 <div class="flex flex--row flex--top gap--small">
   {% if movie.tmdb_id and show_images != "false" %}
-  <div style="position:relative;display:inline-block;flex-shrink:0;">
-  <img class="image image-dither {{img_class}}" src="{{data.image_base_url}}/image/{{movie.media_type}}/{{movie.tmdb_id}}"/>{% unless img_class == 'hidden' or img_class == ' hidden' %}<div style="position:absolute;bottom:3px;right:3px;background:white;border-radius:4px;padding:2px;line-height:0;"><svg width="14" height="14" viewBox="206 517 32 32" fill="currentColor"><path d="M225,531.012 C222.232,531.012 219.989,528.768 219.989,526 C219.989,523.232 222.232,520.989 225,520.989 C227.768,520.989 230.011,523.232 230.011,526 C230.011,528.768 227.768,531.012 225,531.012 L225,531.012 Z M212,531 C209.791,531 208,529.209 208,527 C208,524.791 209.791,523 212,523 C214.209,523 216,524.791 216,527 C216,529.209 214.209,531 212,531 L212,531 Z M236,531 L230,535 C230,533.786 229.448,532.712 228.594,531.979 C230.626,530.753 232,528.546 232,526 C232,522.134 228.866,519 225,519 C221.134,519 218,522.134 218,526 C218,527.962 218.812,529.729 220.111,531 L216.443,531 C217.4,529.937 218,528.544 218,527 C218,523.687 215.313,521 212,521 C208.687,521 206,523.687 206,527 C206,528.809 206.816,530.41 208.082,531.511 C206.847,532.191 206,533.49 206,535 L206,543 C206,545.209 207.791,547 210,547 L226,547 C228.209,547 230,545.209 230,543 L236,547 C237.104,547 238,546.104 238,545 L238,533 C238,531.896 237.104,531 236,531 L236,531 Z"/></svg></div>{% endunless %}</div>
+  <div style="position:relative;display:inline-block;flex-shrink:0;align-self:flex-start;overflow:hidden;">
+  <img class="image image-dither image--contain {{img_class}}" src="{{data.image_base_url}}/image/{{movie.media_type}}/{{movie.tmdb_id}}"/>{% unless img_class == 'hidden' or img_class == ' hidden' %}<div style="position:absolute;bottom:3px;right:3px;background:white;border-radius:4px;padding:2px;line-height:0;filter:invert(1);"><svg class="image-stroke" width="18" height="18" viewBox="206 517 32 32" fill="currentColor"><path d="M225,531.012 C222.232,531.012 219.989,528.768 219.989,526 C219.989,523.232 222.232,520.989 225,520.989 C227.768,520.989 230.011,523.232 230.011,526 C230.011,528.768 227.768,531.012 225,531.012 L225,531.012 Z M212,531 C209.791,531 208,529.209 208,527 C208,524.791 209.791,523 212,523 C214.209,523 216,524.791 216,527 C216,529.209 214.209,531 212,531 L212,531 Z M236,531 L230,535 C230,533.786 229.448,532.712 228.594,531.979 C230.626,530.753 232,528.546 232,526 C232,522.134 228.866,519 225,519 C221.134,519 218,522.134 218,526 C218,527.962 218.812,529.729 220.111,531 L216.443,531 C217.4,529.937 218,528.544 218,527 C218,523.687 215.313,521 212,521 C208.687,521 206,523.687 206,527 C206,528.809 206.816,530.41 208.082,531.511 C206.847,532.191 206,533.49 206,535 L206,543 C206,545.209 207.791,547 210,547 L226,547 C228.209,547 230,545.209 230,543 L236,547 C237.104,547 238,546.104 238,545 L238,533 C238,531.896 237.104,531 236,531 L236,531 Z"/></svg></div>{% endunless %}</div>
   {% endif %}
   <div class="flex flex--col flex--top gap--none w--full h--full">
     <div class="label label--underline w--full text--left m--0" data-clamp="3">{{movie.title}}</div>
-    <div class="label label--small w--full text--left m--0" ><strong data-clamp="3">
-          {% if movie.watched_at %}
-    ({{movie.watched_at | date: "%b %-d"}}
-    {% endif %}
-        {% if ep.progress %} ({{ep.progress}}%){% endif %}
-      {{movie.year}}{% if movie.genres.size > 0 %} · Movie{% endif %}{% unless movie.progress %}{% if movie.watched_at %} · {{movie.watched_at | date: "%b %-d"}}{% elsif movie.released %} · {{movie.released | date: "%b %-d"}}{% elsif movie.rating %} · ★ {{movie.rating}}/10{% endif %}{% endunless %}{% for g in movie.genres limit: 2 %} · {{g}}{% endfor %}</strong></div>
+    <div class="label label--small w--full text--left m--0" ><strong data-clamp="3">{{movie.year}}{% if movie.genres.size > 0 %} · Movie{% endif %}{% unless movie.progress %}{% if movie.watched_at %} · {{movie.watched_at | date: "%b %-d"}}{% elsif movie.released %} · {{movie.released | date: "%b %-d"}}{% elsif movie.rating %} · ★ {{movie.rating}}/10{% endif %}{% endunless %}{% for g in movie.genres limit: 2 %} · {{g}}{% endfor %}</strong></div>
 
 
     {% if movie.overview %}
@@ -45,18 +36,13 @@
 {% template show_item %}
 <div class="flex flex--row flex--top gap--small">
   {% if show.tmdb_id and show_images != "false" %}
-  <div style="position:relative;display:inline-block;flex-shrink:0;"><img class="image image-dither {{img_class}}" src="{{data.image_base_url}}/image/{{show.media_type}}/{{show.tmdb_id}}"/>{% unless img_class == 'hidden' or img_class == ' hidden' %}<div style="position:absolute;bottom:3px;right:3px;background:white;border-radius:4px;padding:2px;line-height:0;"><svg width="14" height="14" viewBox="362 517 32 32" fill="currentColor"><path d="M387,535 C385.343,535 384,533.657 384,532 C384,530.343 385.343,529 387,529 C388.657,529 390,530.343 390,532 C390,533.657 388.657,535 387,535 L387,535 Z M389,542 L385,542 C384.447,542 384,541.553 384,541 C384,540.447 384.447,540 385,540 L389,540 C389.553,540 390,540.447 390,541 C390,541.553 389.553,542 389,542 L389,542 Z M389,545 L385,545 C384.447,545 384,544.553 384,544 C384,543.447 384.447,543 385,543 L389,543 C389.553,543 390,543.447 390,544 C390,544.553 389.553,545 389,545 L389,545 Z M382,543 C382,544.104 381.104,545 380,545 L368,545 C366.896,545 366,544.104 366,543 L366,531 C366,529.896 366.896,529 368,529 L380,529 C381.104,529 382,529.896 382,531 L382,543 L382,543 Z M390,525 L380.746,525 L389.518,518.965 C389.981,518.646 390.113,517.988 389.813,517.496 C389.514,517.004 388.895,516.863 388.431,517.182 C388.431,517.182 378.821,523.817 378.009,524.307 L367.569,517.182 C367.106,516.863 366.486,517.004 366.187,517.496 C365.887,517.988 366.019,518.646 366.482,518.965 L375.254,525 L366,525 C363.791,525 362,526.791 362,529 L362,545 C362,547.209 363.791,549 366,549 L390,549 C392.209,549 394,547.209 394,545 L394,529 C394,526.791 392.209,525 390,525 L390,525 Z M386,533 L388,533 L388,531 L386,531 L386,533 Z M379,531 L369,531 C368.447,531 368,531.448 368,532 L368,542 C368,542.553 368.447,543 369,543 L379,543 C379.553,543 380,542.553 380,542 L380,532 C380,531.448 379.553,531 379,531 L379,531 Z"/></svg></div>{% endunless %}</div>
+  <div style="position:relative;display:inline-block;flex-shrink:0;align-self:flex-start;overflow:hidden;"><img class="image image--contain image-dither {{img_class}}" src="{{data.image_base_url}}/image/{{show.media_type}}/{{show.tmdb_id}}"/>{% unless img_class == 'hidden' or img_class == ' hidden' %}<div style="position:absolute;bottom:3px;right:3px;background:white;border-radius:4px;padding:2px;line-height:0;filter:invert(1);"><svg class="image-stroke" width="18" height="18" viewBox="362 517 32 32" fill="currentColor"><path d="M387,535 C385.343,535 384,533.657 384,532 C384,530.343 385.343,529 387,529 C388.657,529 390,530.343 390,532 C390,533.657 388.657,535 387,535 L387,535 Z M389,542 L385,542 C384.447,542 384,541.553 384,541 C384,540.447 384.447,540 385,540 L389,540 C389.553,540 390,540.447 390,541 C390,541.553 389.553,542 389,542 L389,542 Z M389,545 L385,545 C384.447,545 384,544.553 384,544 C384,543.447 384.447,543 385,543 L389,543 C389.553,543 390,543.447 390,544 C390,544.553 389.553,545 389,545 L389,545 Z M382,543 C382,544.104 381.104,545 380,545 L368,545 C366.896,545 366,544.104 366,543 L366,531 C366,529.896 366.896,529 368,529 L380,529 C381.104,529 382,529.896 382,531 L382,543 L382,543 Z M390,525 L380.746,525 L389.518,518.965 C389.981,518.646 390.113,517.988 389.813,517.496 C389.514,517.004 388.895,516.863 388.431,517.182 C388.431,517.182 378.821,523.817 378.009,524.307 L367.569,517.182 C367.106,516.863 366.486,517.004 366.187,517.496 C365.887,517.988 366.019,518.646 366.482,518.965 L375.254,525 L366,525 C363.791,525 362,526.791 362,529 L362,545 C362,547.209 363.791,549 366,549 L390,549 C392.209,549 394,547.209 394,545 L394,529 C394,526.791 392.209,525 390,525 L390,525 Z M386,533 L388,533 L388,531 L386,531 L386,533 Z M379,531 L369,531 C368.447,531 368,531.448 368,532 L368,542 C368,542.553 368.447,543 369,543 L379,543 C379.553,543 380,542.553 380,542 L380,532 C380,531.448 379.553,531 379,531 L379,531 Z"/></svg></div>{% endunless %}</div>
   {% endif %}
   <div class="flex flex--col flex--top gap--none w--full h--full">
     <div class="label label--underline w--full text--left m--0" data-clamp="3">{{show.title}}</div>
 
-    <div class="label label--small w--full text--left m--0"><strong data-clamp="3">
-      {% if show.watched_at %}
-      ({{ show.watched_at | date: "%b %-d"}})
-      {% endif %}
-      {% if show.progress %} ({{show.progress}}%){% endif %}
-      {{show.year}}{% if show.genres.size > 0 %} · Show{% endif %}{% if show.rating %} · ★ {{show.rating}}/10{% endif %}{% if show.network %} · {{show.network}}{% endif %}{% for g in show.genres limit: 2 %} · {{g}}{% endfor %}</strong></div>
-    {% if show.overview %}<dispanv class="description" data-clamp="{{desc_clamp}}" data-clamp-lg="{{desc_clamp_lg}}" data-clamp-portrait="{{desc_clamp_portrait}}" data-clamp-lg-portrait="{{desc_clamp_lg_portrait}}">{{show.overview | escape }}</span>{% endif %}
+    <div class="label label--small w--full text--left m--0"><strong data-clamp="3">{% if show.watched_at %}({{ show.watched_at | date: "%b %-d"}}) {% endif %}{% if show.progress %}({{show.progress}}%) {% endif %}{{show.year}}{% if show.genres.size > 0 %} · Show{% endif %}{% if show.rating %} · ★ {{show.rating}}/10{% endif %}{% if show.network %} · {{show.network}}{% endif %}{% for g in show.genres limit: 2 %} · {{g}}{% endfor %}</strong></div>
+    {% if show.overview %}<span class="description" data-clamp="{{desc_clamp}}" data-clamp-lg="{{desc_clamp_lg}}" data-clamp-portrait="{{desc_clamp_portrait}}" data-clamp-lg-portrait="{{desc_clamp_lg_portrait}}">{{show.overview | escape }}</span>{% endif %}
   </div>
 </div>
 {% endtemplate %}
@@ -79,22 +65,28 @@ cats_portrait    — categories shown at portrait base (default: cats)
 cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
 {% endcomment %}
 
-{% comment %}— Columns → build grid class —{% endcomment %}
+{% comment %}— Columns —{% endcomment %}
 {% assign _cols      = cols             | default: 2       | plus: 0 %}
 {% assign _cols_lg   = cols_lg          | default: _cols    | plus: 0 %}
 {% assign _cols_p    = cols_portrait    | default: _cols    | plus: 0 %}
 {% assign _cols_lg_p = cols_lg_portrait | default: _cols_lg | plus: 0 %}
-{% assign _grid = "grid grid--cols-" | append: _cols %}
-{% unless _cols_lg   == _cols    %}{% assign _grid = _grid | append: " lg:grid--cols-"         | append: _cols_lg   %}{% endunless %}
-{% unless _cols_p == _cols and _cols_p == _cols_lg %}{% assign _grid = _grid | append: " portrait:grid--cols-" | append: _cols_p %}{% endunless %}
-{% assign _eff_cols_lg_p = _cols %}{% if _cols_lg != _cols %}{% assign _eff_cols_lg_p = _cols_lg %}{% endif %}{% unless _cols_p == _cols and _cols_p == _cols_lg %}{% assign _eff_cols_lg_p = _cols_p %}{% endunless %}
-{% unless _cols_lg_p == _eff_cols_lg_p %}{% assign _grid = _grid | append: " lg:portrait:grid--cols-" | append: _cols_lg_p %}{% endunless %}
 
 {% comment %}— Items per category —{% endcomment %}
 {% assign _items      = items             | default: 4        | plus: 0 %}
 {% assign _items_lg   = items_lg          | default: _items    | plus: 0 %}
 {% assign _items_p    = items_portrait    | default: _items    | plus: 0 %}
 {% assign _items_lg_p = items_lg_portrait | default: _items_lg | plus: 0 %}
+
+{% comment %}— User settings —{% endcomment %}
+{% assign _show_images = trmnl.plugin_settings.custom_fields_values.show_images | default: "true" %}
+
+{% comment %}— Grid class —{% endcomment %}
+{% assign _grid = "grid grid--cols-" | append: _cols %}
+{% unless _cols_lg   == _cols    %}{% assign _grid = _grid | append: " lg:grid--cols-"         | append: _cols_lg   %}{% endunless %}
+{% unless _cols_p == _cols and _cols_p == _cols_lg %}{% assign _grid = _grid | append: " portrait:grid--cols-" | append: _cols_p %}{% endunless %}
+{% assign _eff_cols_lg_p = _cols %}{% if _cols_lg != _cols %}{% assign _eff_cols_lg_p = _cols_lg %}{% endif %}{% unless _cols_p == _cols and _cols_p == _cols_lg %}{% assign _eff_cols_lg_p = _cols_p %}{% endunless %}
+{% unless _cols_lg_p == _eff_cols_lg_p %}{% assign _grid = _grid | append: " lg:portrait:grid--cols-" | append: _cols_lg_p %}{% endunless %}
+
 {% assign max_items = _items %}
 {% if _items_lg   > max_items %}{% assign max_items = _items_lg   %}{% endif %}
 {% if _items_p    > max_items %}{% assign max_items = _items_p    %}{% endif %}
@@ -105,9 +97,6 @@ cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
 {% assign _dc_lg = desc_clamp_lg          | default: _dc %}
 {% assign _dc_p  = desc_clamp_portrait    | default: _dc %}
 {% assign _dc_lp = desc_clamp_lg_portrait | default: _dc_lg %}
-
-{% comment %}— User settings —{% endcomment %}
-{% assign _show_images = trmnl.plugin_settings.custom_fields_values.show_images | default: "true" %}
 {% assign _boost    = desc_clamp_boost             | default: 0 %}
 {% assign _boost_lg = desc_clamp_boost_lg          | default: _boost %}
 {% assign _boost_p  = desc_clamp_boost_portrait    | default: _boost %}
@@ -139,7 +128,7 @@ cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
       <div class="meta w--6 bg--black" style="writing-mode:vertical-lr;letter-spacing:0.1em;font-weight:700;text-align:center;flex-shrink:0;color:white;background-color:black;margin:4px 0;">{{cat.title | upcase | replace: ' ', '<br>'}}</div>
       <div class="flex flex--row p--1 stretch" >
 
-        <div class="{{_grid}} w--min-0 stretch" style="overflow:hidden;flex:1;">
+        <div class="{{_grid}} w--min-0 stretch" style="overflow:hidden;flex:1;padding-right:6px;padding-bottom:6px;">
           {% assign cat_items = cat.items %}
           {% for item in cat_items | limit: max_items %}
 
@@ -179,6 +168,6 @@ cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
                   <div class="title_bar">
                     <img class="image image-dither rounded" src="https://raw.githubusercontent.com/Taxel/PlexTraktSync/refs/heads/main/trakt.ico">
                     <span class="title">{% assign _iname = trmnl.plugin_settings.instance_name %}{% if _iname and _iname != 'Trakt.tv' %}{{_iname}}{% elsif data.user.username %}{% assign _ul = data.user.username | slice: -1 %}{{data.user.username}}{% if _ul == 's' or _ul == 'S' %}'{% else %}'s{% endif %} Trakt.tv{% else %}Trakt.tv{% endif %}</span>
-                    <span class="instance {% if titlebar_instance_class %}{{titlebar_instance_class}}{% endif %}">{% assign _sp = "" %}{% assign _ss = "" %}{% assign _hc = "" %}{% if data.stats.hours_watched > 0 %}{% assign _sp = _sp | append: _ss | append: data.stats.hours_watched | append: "h watched" %}{% assign _ss = " · " %}{% endif %}{% if data.stats.movies_collected > 0 %}{% assign _mc = data.stats.movies_collected | append: " movie" %}{% if data.stats.movies_collected != 1 %}{% assign _mc = _mc | append: "s" %}{% endif %}{% assign _sp = _sp | append: _ss | append: _mc %}{% assign _ss = " · " %}{% assign _hc = "1" %}{% endif %}{% if data.stats.shows_collected > 0 %}{% assign _sc = data.stats.shows_collected | append: " show" %}{% if data.stats.shows_collected != 1 %}{% assign _sc = _sc | append: "s" %}{% endif %}{% assign _sp = _sp | append: _ss | append: _sc %}{% assign _hc = "1" %}{% endif %}{% if _hc != "" %}{% assign _sp = _sp | append: " collected" %}{% endif %}{{_sp}}</span>
+                    <span class="instance {% if titlebar_instance_class %}{{titlebar_instance_class}}{% endif %}">{% assign _sp = "" %}{% assign _ss = "" %}{% assign _hc = "" %}{% if data.stats.hours_watched > 0 %}{% assign _sp = _sp | append: _ss | append: data.stats.hours_watched | append: "h watched" %}{% assign _ss = " · " %}{% endif %}{% if data.stats.movies_collected > 0 %}{% assign _mc = data.stats.movies_collected | append: " movie" %}{% if data.stats.movies_collected != 1 %}{% assign _mc = _mc | append: "s" %}{% endif %}{% assign _sp = _sp | append: _ss | append: _mc %}{% assign _ss = " · " %}{% assign _hc = "1" %}{% endif %}{% if data.stats.shows_collected > 0 %}{% assign _sc = data.stats.shows_collected | append: " show" %}{% if data.stats.shows_collected != 1 %}{% assign _sc = _sc | append: "s" %}{% endif %}{% if data.stats.episodes_collected > 0 %}{% assign _ep = data.stats.episodes_collected | append: " ep" %}{% if data.stats.episodes_collected != 1 %}{% assign _ep = _ep | append: "s" %}{% endif %}{% assign _sc = _sc | append: " (" | append: _ep | append: ")" %}{% endif %}{% assign _sp = _sp | append: _ss | append: _sc %}{% assign _hc = "1" %}{% endif %}{% if _hc != "" %}{% assign _sp = _sp | append: " collected" %}{% endif %}{{_sp}}</span>
                    </div>
                   {% endtemplate %}

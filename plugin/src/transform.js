@@ -208,6 +208,7 @@ function transform(input) {
       user: { username: user.username || null },
       stats: {
         hours_watched:    Math.floor((stats.episodes?.minutes || 0) / 60),
+        episodes_collected: stats.episodes?.collected || 0,
         movies_collected: stats.movies?.collected || 0,
         shows_collected:  stats.shows?.collected  || 0,
       },

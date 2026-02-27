@@ -1,15 +1,21 @@
+{% assign _si = trmnl.plugin_settings.custom_fields_values.show_images | default: "true" %}
+{% assign _e = 0 %}{% if _si == "false" %}{% assign _e = 1 %}{% endif %}
+{% assign _c    = 2 | plus: _e %}
+{% assign _c_lg = 3 | plus: _e %}
+{% assign _i    = 2 | plus: _e %}
+{% assign _i_lg = 3 | plus: _e %}
 {% render "main",
   trmnl: trmnl,
   data: data,
-  img_class: "h--max-48 lg:h--max-60 md:portrait:hidden",
-  cols: 3,
-  cols_lg: 3,
-  cols_portrait: 2,
-  cols_lg_portrait: 3,
-  items: 3,
-  items_lg: 3,
-  items_portrait: 2,
-  items_lg_portrait: 3,
+  img_class: "h--auto h--max-48 lg:h--max-40",
+  cols: _c,
+  cols_lg: _c_lg,
+  cols_portrait: 1,
+  cols_lg_portrait: _c_lg,
+  items: _i,
+  items_lg: _i_lg,
+  items_portrait: 1,
+  items_lg_portrait: _i_lg,
   desc_clamp: 5,
   desc_clamp_lg: 5,
   desc_clamp_portrait: 6,
@@ -19,5 +25,4 @@
   desc_clamp_boost_portrait: 0,
   desc_clamp_boost_lg_portrait: 0,
   titlebar_instance_class: "portrait:hidden"
-
- %}
+%}
