@@ -399,87 +399,103 @@ async def enrich_progress_all(cat_items: list[list], token: str, client_id: str)
 
 def _build_stat_items(stats_data: dict, top_movies: list = None, top_shows: list = None) -> list:
     """Build display items from a Trakt /users/{user}/stats response."""
-    items   = []
-    movies  = stats_data.get('movies')   or {}
-    shows   = stats_data.get('shows')    or {}
-    eps     = stats_data.get('episodes') or {}
-    net     = stats_data.get('network')  or {}
-    ratings = stats_data.get('ratings')  or {}
-    if top_movies:
-        m   = top_movies[0]
-        mov = m.get('movie') or {}
-        if mov.get('title'):
-            values = []
-            plays = m.get('plays', 0)
-            if plays > 1:
-                values.append(f"{m['plays']} plays")
-                items.append({'type': 'stat', 'label': 'Top Movie', 'item': mov, 'values': values})
+    items = []
+    movies = stats_data.get('movies') or {}
+    shows = stats_data.get('shows') or {}
+    eps = stats_data.get('episodes') or {}
+    net = stats_data.get('network') or {}
+    ratings = stats_data.get('ratings') or {}
 
-    if top_shows:
-        s = top_shows[0]
-        show = s.get('show') or {}
-        if show.get('title'):
-            values = []
-            plays = s.get('plays', 0)
-            if plays > 1:
-                values.append(f"{s['plays']} plays")
-                items.append({'type': 'stat', 'label': 'Top Show', 'show': show, 'values': values})
-
+    # Movies stats
     if movies:
-        values = []
-        parts = []
-        if movies.get('watched'): parts.append(f"{movies['watched']} watched")
-        if movies.get('plays'):   parts.append(f"{movies['plays']} plays")
-        if parts: values.append(' · '.join(parts))
-        parts = []
-        h = (movies.get('minutes') or 0) // 60
-        if h: parts.append(f"{h}h")
-        if movies.get('collected'): parts.append(f"{movies['collected']} collected")
-        if parts: values.append(' · '.join(parts))
-        if values:
-            items.append({'type': 'stat', 'label': 'Movies', 'values': values})
+        movie_values = []
+        if movies.get('watched'):
+            movie_values.append({'label': 'Watched', 'value': movies['watched']})
+        if movies.get('plays'):
+            movie_values.append({'label': 'Plays', 'value': movies['plays']})
 
+        hours = (movies.get('minutes') or 0) // 60
+        if hours:
+            movie_values.append({'label': 'Hours', 'value': hours})
+        if movies.get('collected'):
+            movie_values.append({'label': 'Collected', 'value': movies['collected']})
+
+        # Add top movie to movies stats
+        if top_movies and top_movies[0].get('movie', {}).get('title'):
+            m = top_movies[0]
+            movie = m.get('movie', {})
+            plays = m.get('plays', 0)
+            movie_values.append({
+                'label': 'Top Movie',
+                'value': f"{movie.get('title')} ({plays} play{'' if plays == 1 else 's'})"
+            })
+
+        if movie_values:
+            items.append({'type': 'stat', 'label': 'Movies', 'values': movie_values})
+
+    # Episodes stats
     if eps:
-        values = []
-        parts = []
-        if eps.get('watched'): parts.append(f"{eps['watched']} watched")
-        if eps.get('plays'):   parts.append(f"{eps['plays']} plays")
-        if parts: values.append(' · '.join(parts))
-        parts = []
-        h = (eps.get('minutes') or 0) // 60
-        if h: parts.append(f"{h}h")
-        if eps.get('collected'): parts.append(f"{eps['collected']} collected")
-        if parts: values.append(' · '.join(parts))
-        if values:
-            items.append({'type': 'stat', 'label': 'Episodes', 'values': values})
+        episode_values = []
+        if eps.get('watched'):
+            episode_values.append({'label': 'Watched', 'value': eps['watched']})
+        if eps.get('plays'):
+            episode_values.append({'label': 'Plays', 'value': eps['plays']})
 
+        hours = (eps.get('minutes') or 0) // 60
+        if hours:
+            episode_values.append({'label': 'Hours', 'value': hours})
+        if eps.get('collected'):
+            episode_values.append({'label': 'Collected', 'value': eps['collected']})
+
+        if episode_values:
+            items.append({'type': 'stat', 'label': 'Episodes', 'values': episode_values})
+
+    # Shows stats
     if shows:
-        values = []
-        parts = []
-        if shows.get('watched'):   parts.append(f"{shows['watched']} watched")
-        if shows.get('collected'): parts.append(f"{shows['collected']} collected")
-        if shows.get('ratings'):   parts.append(f"{shows['ratings']} rated")
-        if parts: values.append(' · '.join(parts))
-        if values:
-            items.append({'type': 'stat', 'label': 'Shows', 'values': values})
+        show_values = []
+        if shows.get('watched'):
+            show_values.append({'label': 'Watched', 'value': shows['watched']})
+        if shows.get('collected'):
+            show_values.append({'label': 'Collected', 'value': shows['collected']})
+        if shows.get('ratings'):
+            show_values.append({'label': 'Rated', 'value': shows['ratings']})
 
+        # Add top show to shows stats
+        if top_shows and top_shows[0].get('show', {}).get('title'):
+            s = top_shows[0]
+            show = s.get('show', {})
+            plays = s.get('plays', 0)
+            show_values.append({
+                'label': 'Top Show',
+                'value': f"{show.get('title')} ({plays} play{'' if plays == 1 else 's'})"
+            })
+
+        if show_values:
+            items.append({'type': 'stat', 'label': 'Shows', 'values': show_values})
+
+    # Network stats
     if net:
-        values = []
-        parts = []
-        if net.get('friends'):   parts.append(f"{net['friends']} friends")
-        if net.get('followers'): parts.append(f"{net['followers']} followers")
-        if net.get('following'): parts.append(f"{net['following']} following")
-        if parts: values.append(' · '.join(parts))
-        if values:
-            items.append({'type': 'stat', 'label': 'Network', 'values': values})
+        network_values = []
+        if net.get('friends'):
+            network_values.append({'label': 'Friends', 'value': net['friends']})
+        if net.get('followers'):
+            network_values.append({'label': 'Followers', 'value': net['followers']})
+        if net.get('following'):
+            network_values.append({'label': 'Following', 'value': net['following']})
 
+        if network_values:
+            items.append({'type': 'stat', 'label': 'Network', 'values': network_values})
+
+    # Ratings stats
     total = ratings.get('total', 0)
     if total:
-        items.append({'type': 'stat', 'label': 'Ratings', 'values': [f"{total} rated"]})
-
+        items.append({
+            'type': 'stat',
+            'label': 'Ratings',
+            'values': [{'label': 'Total', 'value': total}]
+        })
 
     return items
-
 
 async def _fetch_trending(token, client_id) -> list:
     (_, shows), (_, movs) = await asyncio.gather(
