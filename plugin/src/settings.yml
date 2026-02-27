@@ -4,7 +4,7 @@ no_screen_padding: 'no'
 dark_mode: 'no'
 static_data: ''
 polling_verb: get
-polling_url: "{% assign _p1 = trmnl.plugin_settings.custom_fields_values.priority_1 | default: \"continue_watching\" %}\r\n{% assign _p2 = trmnl.plugin_settings.custom_fields_values.priority_2 | default: \"recently_watched\" %}\r\n{% assign _p3 = trmnl.plugin_settings.custom_fields_values.priority_3 | default: \"upcoming\" %}\r\n{% assign _p4 = trmnl.plugin_settings.custom_fields_values.priority_4 | default: \"recommended\" %}\r\n{% assign _p5 = trmnl.plugin_settings.custom_fields_values.priority_5 | default: \"none\" %}\r\n{% assign _cats = _p1 | append: \",\" | append: _p2 | append: \",\" | append: _p3 | append: \",\" | append: _p4 | append: \",\" | append: _p5 | split: \",\" %}\r\n{% assign _seen = \"\" %}{% assign _unique = \"\" %}\r\n{% for _cat in _cats %}{% unless _seen contains _cat or _cat == \"none\" %}{% if _unique != \"\" %}{% assign _unique = _unique | append: \",\" %}{% endif %}{% assign _unique = _unique | append: _cat %}{% assign _seen = _seen | append: _cat | append: \",\" %}{% endunless %}{% endfor %}\r\nhttps://trmnl.bettens.dev/trakttv/query?categories={{ _unique }}\r\n"
+polling_url: "{% assign _p1 = trmnl.plugin_settings.custom_fields_values.priority_1 | default: \"continue_watching\" %}\r\n{% assign _p2 = trmnl.plugin_settings.custom_fields_values.priority_2 | default: \"recently_watched\" %}\r\n{% assign _p3 = trmnl.plugin_settings.custom_fields_values.priority_3 | default: \"upcoming\" %}\r\n{% assign _p4 = trmnl.plugin_settings.custom_fields_values.priority_4 | default: \"recommended\" %}\r\n{% assign _p5 = trmnl.plugin_settings.custom_fields_values.priority_5 | default: \"none\" %}\r\n{% assign _cats = _p1 | append: \",\" | append: _p2 | append: \",\" | append: _p3 | append: \",\" | append: _p4 | append: \",\" | append: _p5 | split: \",\" %}\r\n{% assign _seen = \"\" %}{% assign _unique = \"\" %}\r\n{% for _cat in _cats %}{% unless _seen contains _cat or _cat == \"none\" %}{% if _unique != \"\" %}{% assign _unique = _unique | append: \",\" %}{% endif %}{% assign _unique = _unique | append: _cat %}{% assign _seen = _seen | append: _cat | append: \",\" %}{% endunless %}{% endfor %}\r\n{% assign _uname = trmnl.plugin_settings.custom_fields_values.username | strip %}\r\nhttps://trmnl.bettens.dev/trakttv/query?categories={{ _unique }}{% if _uname != \"\" %}&username={{ _uname | url_encode }}{% endif %}\r\n"
 polling_headers: Authorization=Bearer%20{{ oauth_access_token }}&trakt-api-key={{ oauth_client_id }}
 polling_body: ''
 id: 245666
@@ -16,12 +16,14 @@ custom_fields:
     Track your Trakt.tv activity right on your TRMNL device.<br /><br />
     <strong>Available categories</strong><br />
     · <strong>Now Watching</strong> — currently playing<br />
-    · <strong>Continue Watching / Paused</strong> — paused shows &amp; movies<br />
-    · <strong>Recently Watched</strong> — your watch history<br />
-    · <strong>Upcoming</strong> — next episodes &amp; releases<br />
-    · <strong>Recommended</strong> — personalized picks from Trakt<br />
-    · <strong>Watchlist</strong> — your saved items<br />
-    · <strong>Collection</strong> — your collected media<br /><br />
+    · <strong>Continue Watching / Paused</strong> — paused shows &amp; movies <em>(self only)</em><br />
+    · <strong>Recently Watched</strong> — your watch history <em>(self only)</em><br />
+    · <strong>Upcoming</strong> — next episodes &amp; releases <em>(self only)</em><br />
+    · <strong>Recommended</strong> — personalized picks from Trakt <em>(self only)</em><br />
+    · <strong>Watchlist</strong> — saved items<br />
+    · <strong>Collection</strong> — collected media<br />
+    · <strong>Stats</strong> — watch statistics<br />
+    · <strong>Trending</strong> — what's popular right now<br /><br />
     <strong>Requires Trakt.tv OAuth</strong>
   category: entertainment
   github_url: https://github.com/ExcuseMi/trmnl-trakt-tv-plugin
@@ -39,6 +41,8 @@ custom_fields:
   - Recommended: recommended
   - Watchlist: watchlist
   - Collection: collection
+  - Stats: stats
+  - Trending: trending
   - None: none
   default: continue_watching
 - keyname: priority_2
@@ -53,6 +57,8 @@ custom_fields:
   - Recommended: recommended
   - Watchlist: watchlist
   - Collection: collection
+  - Stats: stats
+  - Trending: trending
   - None: none
   default: recently_watched
 - keyname: priority_3
@@ -67,6 +73,8 @@ custom_fields:
   - Recommended: recommended
   - Watchlist: watchlist
   - Collection: collection
+  - Stats: stats
+  - Trending: trending
   - None: none
   default: upcoming
 - keyname: priority_4
@@ -81,6 +89,8 @@ custom_fields:
   - Recommended: recommended
   - Watchlist: watchlist
   - Collection: collection
+  - Stats: stats
+  - Trending: trending
   - None: none
   default: recommended
 - keyname: priority_5
@@ -95,8 +105,15 @@ custom_fields:
   - Recommended: recommended
   - Watchlist: watchlist
   - Collection: collection
+  - Stats: stats
+  - Trending: trending
   - None: none
   default: none
+  optional: true
+- keyname: username
+  field_type: string
+  name: Target Username
+  description: 'Trakt.tv username to display. Leave empty to show your own account. Note: Continue Watching, Recently Watched, Upcoming, and Recommended are only available for your own account.'
   optional: true
 - keyname: show_images
   field_type: boolean

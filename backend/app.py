@@ -659,6 +659,52 @@ async def fetch_category(cat: str, token: str, client_id: str, today: str, usern
 
 
 # ============================================================================
+# PAYLOAD SLIM
+# ============================================================================
+
+def _slim_overview(text: Optional[str], max_len: int = 200) -> Optional[str]:
+    if not text:
+        return None
+    return text[:max_len] if len(text) > max_len else text
+
+
+def _slim_item(item: dict) -> dict:
+    """
+    Strip backend-only fields and trim large values before sending to TRMNL.
+    The transform.js does the same client-side; this reduces raw transfer size.
+    """
+    REMOVE = {'tmdb_id', 'media_type', 'trakt_slug'}
+    out = {}
+    for k, v in item.items():
+        if k in REMOVE or v is None:
+            continue
+        if k == 'overview':
+            v = _slim_overview(v)
+            if not v:
+                continue
+        elif k == 'genres' and v:
+            v = v[:2]
+        elif k == 'seasons':
+            slimmed = []
+            for s in v[:1]:                        # template uses limit:1
+                eps = [
+                    {ek: ev for ek, ev in ep.items()
+                     if ek != 'season' and ev is not None}
+                    for ep in s.get('episodes', [])[:3]  # template uses limit:3
+                ]
+                for ep in eps:
+                    if ep.get('overview'):
+                        ep['overview'] = _slim_overview(ep['overview'])
+                    elif 'overview' in ep:
+                        del ep['overview']
+                slimmed.append({sk: sv for sk, sv in s.items()
+                                if sk != 'episodes' and sv is not None} | {'episodes': eps})
+            v = slimmed
+        out[k] = v
+    return out
+
+
+# ============================================================================
 # ROUTES
 # ============================================================================
 
@@ -772,7 +818,7 @@ async def trakt_tv_data(
         if cat == 'stats':
             items = _build_stat_items(stats_data)
         else:
-            items = enriched_cats[non_stats_idx]
+            items = [_slim_item(i) for i in enriched_cats[non_stats_idx]]
             non_stats_idx += 1
         if items:
             has_content = True

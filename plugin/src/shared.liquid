@@ -24,8 +24,8 @@ assign timestamp = datetime | date: "%s" | plus: 0
 assign timezone_offset = trmnl.user.utc_offset | default: 0
 assign today = now_timestamp | date: "%Y-%m-%d"
 assign timestamp_day = timestamp | date: "%Y-%m-%d"
-assign year = timestamp | date: "%Y"
-assign current_year = now_timestamp | date: "%Y"
+assign year = timestamp | date: "%Y" | plus: 0
+assign current_year = now_timestamp | date: "%Y" | plus: 0
 %}
 {% if today == timestamp_day %}
 {% assign format = trmnl.plugin_settings.custom_fields_values.time_format | default: "%I:%M %p" %}
@@ -34,7 +34,7 @@ assign current_year = now_timestamp | date: "%Y"
 {{ timestamp | date: "%b %-d" }}
 {% else %}
 {% assign format =  trmnl.plugin_settings.custom_fields_values.date_format | default: "%m/%d/%Y" %}
-{{ timestamp | date: format }}:
+{{ timestamp | date: format }}
 {% endif %}
 {% endtemplate %}
 
@@ -47,7 +47,7 @@ assign current_year = now_timestamp | date: "%Y"
   </div>{% endunless %}</div>
   {% endif %}
   <div class="flex flex--col flex--top gap--none w--full h--full">
-    <div class="label label--underline w--full text--left m--0">{{show_group.show}}</div>
+    <div class="label label--underline w--full text--left m--0">{% if show_group.favorited %}★ {% endif %}{{show_group.show}}</div>
     {% for season in show_group.seasons | limit: 1 %}
     {% if season.progress and season.progress.completed > 0 %}
     {% assign _s_pct = season.progress.completed | times: 100 | divided_by: season.progress.aired %}
@@ -65,9 +65,7 @@ assign current_year = now_timestamp | date: "%Y"
       {% if ep.progress %} ({{ep.progress}}%){% endif %}
 
     </strong></div>
-    {% if season.episodes.size == 1 and ep.overview %}
-    <span class="description" data-clamp="{{desc_clamp}}" data-clamp-lg="{{desc_clamp_lg}}" data-clamp-portrait="{{desc_clamp_portrait}}" data-clamp-lg-portrait="{{desc_clamp_lg_portrait}}">{{ep.overview | escape }}</span>
-    {% endif %}
+    {% if season.episodes.size == 1 %}{% render "overview_item", overview_text: ep.overview, desc_clamp: desc_clamp, desc_clamp_lg: desc_clamp_lg, desc_clamp_portrait: desc_clamp_portrait, desc_clamp_lg_portrait: desc_clamp_lg_portrait %}{% endif %}
     {% endfor %}
     {% endfor %}
   </div>
@@ -81,6 +79,12 @@ assign current_year = now_timestamp | date: "%Y"
 </div>
 {% endtemplate %}
 
+{% template overview_item %}
+{% if overview_text %}
+<span class="description" data-clamp="{{desc_clamp}}" data-clamp-lg="{{desc_clamp_lg}}" data-clamp-portrait="{{desc_clamp_portrait}}" data-clamp-lg-portrait="{{desc_clamp_lg_portrait}}">{{overview_text | escape }}</span>
+{% endif %}
+{% endtemplate %}
+
 {% template movie_item %}
 <div class="flex flex--row flex--top gap--small movie_item">
   {% if movie.image_url and show_images != "false" %}
@@ -91,7 +95,7 @@ assign current_year = now_timestamp | date: "%Y"
     </div>{% endunless %}</div>
   {% endif %}
   <div class="flex flex--col flex--top gap--none w--full h--full">
-    <div class="label label--underline w--full text--left m--0" data-clamp="3">{{movie.title}}</div>
+    <div class="label label--underline w--full text--left m--0" data-clamp="3">{% if movie.favorited %}★ {% endif %}{{movie.title}}</div>
 
     {% if movie.collected_at %}
     <div class="label label--small w--full text--left m--0" >
@@ -110,11 +114,9 @@ assign current_year = now_timestamp | date: "%Y"
       ✔ {% render "date": datetime: movie.watched_at, trmnl:trmnl %}
 
       {% endif %}
-       {% if movie.rating %} · ★ {{movie.rating}}/10{% endif %}{% endunless %}{% for g in movie.genres limit: 2 %} · {{g}}{% endfor %}</strong></div>
+       {% if movie.rating %} · ★ {{movie.rating}}/10{% endif %}{% endunless %}{% if movie.watchers %} · {{movie.watchers}} watching{% endif %}{% for g in movie.genres limit: 2 %} · {{g}}{% endfor %}</strong></div>
 
-    {% if movie.overview %}
-    <span class="description" data-clamp="{{desc_clamp}}" data-clamp-lg="{{desc_clamp_lg}}" data-clamp-portrait="{{desc_clamp_portrait}}" data-clamp-lg-portrait="{{desc_clamp_lg_portrait}}">{{movie.overview | escape }}</span>
-    {% endif %}
+    {% render "overview_item", overview_text: movie.overview, desc_clamp: desc_clamp, desc_clamp_lg: desc_clamp_lg, desc_clamp_portrait: desc_clamp_portrait, desc_clamp_lg_portrait: desc_clamp_lg_portrait %}
   </div>
 </div>
 {% endtemplate %}
@@ -128,18 +130,16 @@ assign current_year = now_timestamp | date: "%Y"
   </div>{% endunless %}</div>
   {% endif %}
   <div class="flex flex--col flex--top gap--none w--full h--full">
-    <div class="label label--underline w--full text--left m--0" data-clamp="3">{{show.title}}</div>
+    <div class="label label--underline w--full text--left m--0" data-clamp="3">{% if show.favorited %}★ {% endif %}{{show.title}}</div>
     {% if show.collected_at %}
-      <div class="label label--small w--full text--left m--0"><strong data-clamp="3">
-      Collected at {% render "date": datetime: show.collected_at, trmnl:trmnl %}
-    </div>
+    <div class="label label--small w--full text--left m--0">Collected at {% render "date": datetime: show.collected_at, trmnl:trmnl %}</div>
     {% endif %}
     <div class="label label--small w--full text--left m--0"><strong data-clamp="3">
       {% if show.watched_at %}
       ✔ {% render "date": datetime: show.watched_at, trmnl:trmnl %}
       {% endif %}
-      {% if show.progress %}({{show.progress}}%) {% endif %}{{show.year}}{% if show.genres.size > 0 %} · Show{% endif %}{% if show.rating %} · ★ {{show.rating}}/10{% endif %}{% if show.network %} · {{show.network}}{% endif %}{% for g in show.genres limit: 2 %} · {{g}}{% endfor %}</strong></div>
-    {% if show.overview %}<span class="description" data-clamp="{{desc_clamp}}" data-clamp-lg="{{desc_clamp_lg}}" data-clamp-portrait="{{desc_clamp_portrait}}" data-clamp-lg-portrait="{{desc_clamp_lg_portrait}}">{{show.overview | escape }}</span>{% endif %}
+      {% if show.progress %}({{show.progress}}%) {% endif %}{{show.year}}{% if show.genres.size > 0 %} · Show{% endif %}{% if show.rating %} · ★ {{show.rating}}/10{% endif %}{% if show.network %} · {{show.network}}{% endif %}{% if show.watchers %} · {{show.watchers}} watching{% endif %}{% for g in show.genres limit: 2 %} · {{g}}{% endfor %}</strong></div>
+    {% render "overview_item", overview_text: show.overview, desc_clamp: desc_clamp, desc_clamp_lg: desc_clamp_lg, desc_clamp_portrait: desc_clamp_portrait, desc_clamp_lg_portrait: desc_clamp_lg_portrait %}
   </div>
 </div>
 {% endtemplate %}
@@ -212,7 +212,8 @@ cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
     {% if cat.items.size > 0 %}
 
     <div class="item h--min-40 m--1" style="flex-grow:0;align-items:stretch;border:2px solid #000;box-shadow:4px 4px 0 0 #000;">
-      <div class="meta w--6 bg--black" style="writing-mode:vertical-lr;letter-spacing:0.1em;font-weight:700;text-align:center;flex-shrink:0;color:white;background-color:black;margin:4px 0;">{{cat.title | upcase}}</div>
+      {% assign _title_len = cat.title | size %}{% if _title_len > 8 %}{% assign _bar_font = "font-size:0.6em;" %}{% elsif _title_len > 6 %}{% assign _bar_font = "font-size:0.75em;" %}{% else %}{% assign _bar_font = "" %}{% endif %}
+      <div class="meta w--6 bg--black" style="writing-mode:vertical-lr;letter-spacing:0.1em;font-weight:700;text-align:center;flex-shrink:0;color:white;background-color:black;margin:4px 0;{{_bar_font}}">{{cat.title | upcase}}</div>
       <div class="flex flex--row p--1 stretch" >
 
         <div class="{{_grid}} w--min-0 stretch" style="overflow:hidden;flex:1;padding-right:6px;padding-bottom:6px;">
