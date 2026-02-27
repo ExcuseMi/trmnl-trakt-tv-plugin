@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """
-TRMNL Trakt.tv Image Proxy
-Serves poster images for shows and movies via TMDB (primary) and Fanart.tv (fallback).
-Images are cached in Redis to minimize external API calls.
+TRMNL Trakt.tv Backend  (FastAPI + asyncio)
+- /query   — aggregated Trakt.tv data with resolved image URLs per item
+- /health  — health check
 """
 
+import asyncio
 import logging
+import math
 import os
-import threading
-import time
+from contextlib import asynccontextmanager
 from datetime import datetime
-from functools import wraps
 from typing import Optional
 
 import httpx
-import redis
-from flask import Flask, Response, jsonify, request
-from flask_cors import CORS
+import redis.asyncio as aioredis
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 
 
 # ============================================================================
@@ -27,428 +27,554 @@ LOG_LEVEL = logging.DEBUG if os.getenv('DEBUG', 'false').lower() == 'true' else 
 logging.basicConfig(
     level=LOG_LEVEL,
     format='%(asctime)s [%(levelname)s] %(name)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    datefmt='%Y-%m-%d %H:%M:%S',
 )
 logger = logging.getLogger(__name__)
 
-# IP whitelist
 ENABLE_IP_WHITELIST = os.getenv('ENABLE_IP_WHITELIST', 'true').lower() == 'true'
-IP_REFRESH_HOURS = int(os.getenv('IP_REFRESH_HOURS', '24'))
-TRMNL_IPS_API = 'https://trmnl.com/api/ips'
-LOCALHOST_IPS = ['127.0.0.1', '::1', 'localhost']
+TRMNL_IPS_API       = 'https://trmnl.com/api/ips'
+LOCALHOST_IPS       = {'127.0.0.1', '::1', 'localhost'}
 
-# API keys
-TMDB_API_KEY = os.getenv('TMDB_API_KEY', '')
+TMDB_API_KEY   = os.getenv('TMDB_API_KEY', '')
 FANART_API_KEY = os.getenv('FANART_API_KEY', '')
+REDIS_URL      = os.getenv('REDIS_URL', 'redis://redis:6379/0')
 
-# Redis / cache
-REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379/0')
-CACHE_TTL = int(os.getenv('CACHE_TTL_SECONDS', '604800'))  # 7 days
+CACHE_TTL           = int(os.getenv('CACHE_TTL_SECONDS',          '604800'))  # 7 days
 CACHE_TTL_NOT_FOUND = int(os.getenv('CACHE_TTL_NOT_FOUND_SECONDS', '86400'))  # 1 day
+TMDB_IMAGE_SIZE     = os.getenv('TMDB_IMAGE_SIZE', 'w185')
 
-# TMDB
-TMDB_IMAGE_SIZE = os.getenv('TMDB_IMAGE_SIZE', 'w185')
-TMDB_API_BASE = 'https://api.themoviedb.org/3'
+TMDB_API_BASE   = 'https://api.themoviedb.org/3'
 TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p'
 FANART_API_BASE = 'https://webservice.fanart.tv/v3'
+TRAKT_API_BASE  = 'https://api.trakt.tv'
 
-# Sentinel value stored in Redis when no image is found
 NOT_FOUND_SENTINEL = b'__NOT_FOUND__'
 
-# Global state
-TRMNL_IPS = set(LOCALHOST_IPS)
-TRMNL_IPS_LOCK = threading.Lock()
-last_ip_refresh: Optional[datetime] = None
-redis_client: Optional[redis.Redis] = None
+# Global clients — initialised in lifespan
+http:         Optional[httpx.AsyncClient] = None
+redis_client: Optional[aioredis.Redis]    = None
+TRMNL_IPS:    set                         = set(LOCALHOST_IPS)
 
 
 # ============================================================================
-# FLASK APP
+# LIFESPAN (startup / shutdown)
 # ============================================================================
 
-app = Flask(__name__)
-CORS(app)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global http, redis_client
 
+    http = httpx.AsyncClient(timeout=15.0)
 
-# ============================================================================
-# REDIS
-# ============================================================================
-
-def connect_redis():
-    """Connect to Redis with retries on startup."""
-    global redis_client
     for attempt in range(5):
         try:
-            client = redis.Redis.from_url(REDIS_URL, decode_responses=False)
-            client.ping()
-            redis_client = client
+            rc = aioredis.Redis.from_url(REDIS_URL, decode_responses=False)
+            await rc.ping()
+            redis_client = rc
             logger.info("Connected to Redis")
-            return
+            break
         except Exception as e:
-            logger.warning(f"Redis connection attempt {attempt + 1}/5 failed: {e}")
-            time.sleep(2)
-    logger.error("Could not connect to Redis after 5 attempts")
+            logger.warning(f"Redis attempt {attempt + 1}/5 failed: {e}")
+            await asyncio.sleep(2)
+    else:
+        logger.error("Could not connect to Redis after 5 attempts")
+
+    if ENABLE_IP_WHITELIST:
+        await _refresh_trmnl_ips()
+        asyncio.create_task(_ip_refresh_loop())
+    else:
+        logger.warning("IP whitelist DISABLED — all IPs allowed")
+
+    if not TMDB_API_KEY:
+        logger.warning("TMDB_API_KEY not set — image URLs will not resolve")
+
+    logger.info("Application ready")
+    yield
+
+    await http.aclose()
+    if redis_client:
+        await redis_client.aclose()
+
+
+app = FastAPI(lifespan=lifespan)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"])
 
 
 # ============================================================================
 # IP WHITELIST
 # ============================================================================
 
-def fetch_trmnl_ips_sync():
-    """Fetch current TRMNL server IPs from their API (synchronous)."""
+async def _refresh_trmnl_ips():
+    global TRMNL_IPS
     try:
-        with httpx.Client(timeout=10.0) as client:
-            response = client.get(TRMNL_IPS_API)
-            response.raise_for_status()
-            data = response.json()
-            ipv4_list = data.get('data', {}).get('ipv4', [])
-            ipv6_list = data.get('data', {}).get('ipv6', [])
-            ips = set(ipv4_list + ipv6_list + LOCALHOST_IPS)
-            logger.info(f"Loaded {len(ips)} TRMNL IPs ({len(ipv4_list)} IPv4, {len(ipv6_list)} IPv6)")
-            return ips
+        resp = await http.get(TRMNL_IPS_API)
+        resp.raise_for_status()
+        data = resp.json().get('data', {})
+        TRMNL_IPS = set(data.get('ipv4', []) + data.get('ipv6', [])) | LOCALHOST_IPS
+        logger.info(f"Loaded {len(TRMNL_IPS)} TRMNL IPs")
     except Exception as e:
         logger.error(f"Failed to fetch TRMNL IPs: {e}")
-        return set(LOCALHOST_IPS)
 
 
-def update_trmnl_ips():
-    """Update the global TRMNL IP set."""
-    global TRMNL_IPS, last_ip_refresh
-    ips = fetch_trmnl_ips_sync()
-    with TRMNL_IPS_LOCK:
-        TRMNL_IPS = ips
-        last_ip_refresh = datetime.now()
-
-
-def ip_refresh_worker():
-    """Background worker that refreshes TRMNL IPs on the hour."""
+async def _ip_refresh_loop():
     while True:
-        try:
-            now = datetime.now()
-            seconds_to_next_hour = (60 - now.minute) * 60 - now.second
-            time.sleep(seconds_to_next_hour)
-            logger.info("Refreshing TRMNL IPs...")
-            update_trmnl_ips()
-            time.sleep(IP_REFRESH_HOURS * 3600 - 1)
-        except Exception as e:
-            logger.error(f"IP refresh worker error: {e}")
-            time.sleep(3600)
+        now = datetime.now()
+        await asyncio.sleep((60 - now.minute) * 60 - now.second)
+        logger.info("Refreshing TRMNL IPs…")
+        await _refresh_trmnl_ips()
 
 
-def start_ip_refresh_worker():
-    """Start background thread for IP refresh."""
-    if not ENABLE_IP_WHITELIST:
-        return
-    t = threading.Thread(target=ip_refresh_worker, daemon=True, name='IP-Refresh-Worker')
-    t.start()
-    logger.info(f"IP refresh worker started (every {IP_REFRESH_HOURS}h)")
+def _client_ip(request: Request) -> str:
+    for header in ('CF-Connecting-IP', 'X-Forwarded-For', 'X-Real-IP'):
+        val = request.headers.get(header)
+        if val:
+            return val.split(',')[0].strip()
+    return request.client.host
 
 
-def get_client_ip():
-    """Get the real client IP address, accounting for proxies."""
-    if request.headers.get('CF-Connecting-IP'):
-        return request.headers.get('CF-Connecting-IP').strip()
-    if request.headers.get('X-Forwarded-For'):
-        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
-    if request.headers.get('X-Real-IP'):
-        return request.headers.get('X-Real-IP').strip()
-    return request.remote_addr
-
-
-def require_whitelisted_ip(f):
-    """Decorator to enforce IP whitelisting on routes."""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not ENABLE_IP_WHITELIST:
-            return f(*args, **kwargs)
-        client_ip = get_client_ip()
-        with TRMNL_IPS_LOCK:
-            allowed = TRMNL_IPS.copy()
-        if client_ip not in allowed:
-            logger.warning(f"Blocked unauthorized IP: {client_ip}")
-            return jsonify({
-                'error': 'Access denied',
-                'message': 'Your IP address is not authorized to access this service'
-            }), 403
-        return f(*args, **kwargs)
-    return decorated_function
+async def require_whitelisted_ip(request: Request):
+    if ENABLE_IP_WHITELIST and _client_ip(request) not in TRMNL_IPS:
+        logger.warning(f"Blocked IP: {_client_ip(request)}")
+        raise HTTPException(status_code=403, detail="Access denied")
 
 
 # ============================================================================
-# IMAGE LOOKUP
+# IMAGE URL RESOLUTION
 # ============================================================================
 
-def tmdb_headers() -> dict:
-    """Return auth headers for TMDB API. Supports both v3 key and v4 bearer token."""
+def _tmdb_auth() -> tuple[dict, dict]:
     if TMDB_API_KEY.startswith('eyJ'):
-        return {'Authorization': f'Bearer {TMDB_API_KEY}'}
-    return {}
+        return {'Authorization': f'Bearer {TMDB_API_KEY}'}, {}
+    return {}, {'api_key': TMDB_API_KEY}
 
 
-def tmdb_params() -> dict:
-    """Return query params for TMDB API. Only needed for v3 keys."""
-    if not TMDB_API_KEY.startswith('eyJ'):
-        return {'api_key': TMDB_API_KEY}
-    return {}
-
-
-def fetch_tmdb_poster(media_type: str, tmdb_id: str) -> Optional[bytes]:
-    """
-    Fetch a poster image from TMDB.
-    media_type: 'tv' or 'movie'
-    Returns raw image bytes or None.
-    """
+async def _tmdb_poster_url(tmdb_type: str, tmdb_id: str) -> Optional[str]:
     if not TMDB_API_KEY:
-        logger.warning("TMDB_API_KEY not configured")
         return None
-
+    headers, params = _tmdb_auth()
     try:
-        with httpx.Client(timeout=10.0) as client:
-            # Get metadata to find poster_path
-            url = f"{TMDB_API_BASE}/{media_type}/{tmdb_id}"
-            resp = client.get(url, params=tmdb_params(), headers=tmdb_headers())
-            if resp.status_code == 404:
-                logger.info(f"TMDB: {media_type}/{tmdb_id} not found")
-                return None
-            resp.raise_for_status()
-            data = resp.json()
-
-            poster_path = data.get('poster_path')
-            if not poster_path:
-                logger.info(f"TMDB: {media_type}/{tmdb_id} has no poster")
-                return None
-
-            # Fetch the actual image
-            image_url = f"{TMDB_IMAGE_BASE}/{TMDB_IMAGE_SIZE}{poster_path}"
-            img_resp = client.get(image_url)
-            img_resp.raise_for_status()
-            logger.info(f"TMDB: fetched poster for {media_type}/{tmdb_id} ({len(img_resp.content)} bytes)")
-            return img_resp.content
-
+        resp = await http.get(f"{TMDB_API_BASE}/{tmdb_type}/{tmdb_id}", headers=headers, params=params)
+        if resp.status_code == 404:
+            return None
+        resp.raise_for_status()
+        path = resp.json().get('poster_path')
+        return f"{TMDB_IMAGE_BASE}/{TMDB_IMAGE_SIZE}{path}" if path else None
     except Exception as e:
-        logger.error(f"TMDB error for {media_type}/{tmdb_id}: {e}")
+        logger.error(f"TMDB error {tmdb_type}/{tmdb_id}: {e}")
         return None
 
 
-def get_tvdb_id_from_tmdb(tmdb_id: str) -> Optional[int]:
-    """Get TVDB ID for a show via TMDB external_ids endpoint. Result is cached in Redis."""
+async def _tvdb_id(tmdb_id: str) -> Optional[int]:
+    """Resolve TVDB ID from TMDB ID (cached)."""
     cache_key = f"tvdb_id:{tmdb_id}"
-
     if redis_client:
-        cached = redis_client.get(cache_key)
-        if cached is not None:
-            if cached == NOT_FOUND_SENTINEL:
-                return None
+        cached = await redis_client.get(cache_key)
+        if cached == NOT_FOUND_SENTINEL:
+            return None
+        if cached:
             return int(cached)
-
-    if not TMDB_API_KEY:
-        return None
-
+    headers, params = _tmdb_auth()
     try:
-        with httpx.Client(timeout=10.0) as client:
-            resp = client.get(
-                f"{TMDB_API_BASE}/tv/{tmdb_id}/external_ids",
-                params=tmdb_params(),
-                headers=tmdb_headers(),
-            )
-            resp.raise_for_status()
-            tvdb_id = resp.json().get('tvdb_id')
-
-            if redis_client:
-                if tvdb_id:
-                    redis_client.set(cache_key, str(tvdb_id), ex=CACHE_TTL)
-                else:
-                    redis_client.set(cache_key, NOT_FOUND_SENTINEL, ex=CACHE_TTL_NOT_FOUND)
-
-            return tvdb_id
+        resp = await http.get(f"{TMDB_API_BASE}/tv/{tmdb_id}/external_ids", headers=headers, params=params)
+        resp.raise_for_status()
+        tvdb = resp.json().get('tvdb_id')
+        if redis_client:
+            val = str(tvdb).encode() if tvdb else NOT_FOUND_SENTINEL
+            ttl = CACHE_TTL if tvdb else CACHE_TTL_NOT_FOUND
+            await redis_client.set(cache_key, val, ex=ttl)
+        return tvdb
     except Exception as e:
-        logger.error(f"TMDB external_ids error for tv/{tmdb_id}: {e}")
+        logger.error(f"TMDB external_ids tv/{tmdb_id}: {e}")
         return None
 
 
-def fetch_fanart_poster(media_type: str, tmdb_id: str) -> Optional[bytes]:
-    """
-    Fetch a poster image from Fanart.tv as fallback.
-    For movies: uses TMDB ID directly.
-    For shows: looks up TVDB ID first.
-    Returns raw image bytes or None.
-    """
+async def _fanart_poster_url(tmdb_type: str, tmdb_id: str) -> Optional[str]:
+    """Return a direct Fanart.tv poster URL (no image bytes fetched)."""
     if not FANART_API_KEY:
         return None
-
     try:
-        with httpx.Client(timeout=10.0) as client:
-            if media_type == 'tv':
-                tvdb_id = get_tvdb_id_from_tmdb(tmdb_id)
-                if not tvdb_id:
-                    logger.info(f"Fanart: no TVDB ID for show {tmdb_id}")
-                    return None
-                fanart_url = f"{FANART_API_BASE}/tv/{tvdb_id}"
-            else:
-                fanart_url = f"{FANART_API_BASE}/movies/{tmdb_id}"
-
-            resp = client.get(fanart_url, params={'api_key': FANART_API_KEY})
-            if resp.status_code == 404:
+        if tmdb_type == 'tv':
+            tvdb = await _tvdb_id(tmdb_id)
+            if not tvdb:
                 return None
-            resp.raise_for_status()
-            data = resp.json()
+            url = f"{FANART_API_BASE}/tv/{tvdb}"
+        else:
+            url = f"{FANART_API_BASE}/movies/{tmdb_id}"
 
-            # Try tvposter for shows, movieposter for movies
-            poster_key = 'tvposter' if media_type == 'tv' else 'movieposter'
-            posters = data.get(poster_key, [])
-            if not posters:
-                return None
-
-            # Fetch the first poster image
-            poster_url = posters[0].get('url')
-            if not poster_url:
-                return None
-
-            img_resp = client.get(poster_url)
-            img_resp.raise_for_status()
-            logger.info(f"Fanart: fetched poster for {media_type}/{tmdb_id} ({len(img_resp.content)} bytes)")
-            return img_resp.content
-
+        resp = await http.get(url, params={'api_key': FANART_API_KEY})
+        if resp.status_code == 404:
+            return None
+        resp.raise_for_status()
+        key     = 'tvposter' if tmdb_type == 'tv' else 'movieposter'
+        posters = resp.json().get(key, [])
+        return posters[0].get('url') if posters else None
     except Exception as e:
-        logger.error(f"Fanart error for {media_type}/{tmdb_id}: {e}")
+        logger.error(f"Fanart error {tmdb_type}/{tmdb_id}: {e}")
         return None
 
 
-def get_image(media_type: str, tmdb_id: str) -> tuple[Optional[bytes], str]:
-    """
-    Get image bytes for a media item, using cache -> TMDB -> Fanart.tv.
-    Returns (image_bytes, source) where source is 'cache', 'tmdb', 'fanart', or 'none'.
-    """
-    # media_type from URL is 'show' or 'movie'; TMDB uses 'tv' or 'movie'
+async def resolve_image_url(media_type: str, tmdb_id: Optional[int]) -> Optional[str]:
+    """Return a poster URL for an item, using Redis cache → TMDB → Fanart fallback."""
+    if not tmdb_id:
+        return None
     tmdb_type = 'tv' if media_type == 'show' else 'movie'
-    cache_key = f"img:{media_type}:{tmdb_id}"
+    cache_key = f"img_url:{media_type}:{tmdb_id}"
 
-    # Check Redis cache
     if redis_client:
-        try:
-            cached = redis_client.get(cache_key)
-            if cached is not None:
-                if cached == NOT_FOUND_SENTINEL:
-                    return None, 'none'
-                return cached, 'cache'
-        except Exception as e:
-            logger.error(f"Redis read error: {e}")
+        cached = await redis_client.get(cache_key)
+        if cached == NOT_FOUND_SENTINEL:
+            return None
+        if cached:
+            return cached.decode()
 
-    # Try TMDB
-    image_bytes = fetch_tmdb_poster(tmdb_type, tmdb_id)
-    if image_bytes:
-        if redis_client:
-            try:
-                redis_client.set(cache_key, image_bytes, ex=CACHE_TTL)
-            except Exception as e:
-                logger.error(f"Redis write error: {e}")
-        return image_bytes, 'tmdb'
+    url = await _tmdb_poster_url(tmdb_type, str(tmdb_id))
+    if not url:
+        url = await _fanart_poster_url(tmdb_type, str(tmdb_id))
 
-    # Try Fanart.tv fallback
-    image_bytes = fetch_fanart_poster(tmdb_type, tmdb_id)
-    if image_bytes:
-        if redis_client:
-            try:
-                redis_client.set(cache_key, image_bytes, ex=CACHE_TTL)
-            except Exception as e:
-                logger.error(f"Redis write error: {e}")
-        return image_bytes, 'fanart'
-
-    # Nothing found — cache the miss
     if redis_client:
-        try:
-            redis_client.set(cache_key, NOT_FOUND_SENTINEL, ex=CACHE_TTL_NOT_FOUND)
-        except Exception as e:
-            logger.error(f"Redis write error: {e}")
+        val = url.encode() if url else NOT_FOUND_SENTINEL
+        ttl = CACHE_TTL if url else CACHE_TTL_NOT_FOUND
+        await redis_client.set(cache_key, val, ex=ttl)
 
-    return None, 'none'
+    return url
+
+
+async def enrich_images(items: list) -> list:
+    """Resolve and attach image_url to every item in parallel."""
+    async def add_url(item):
+        item['image_url'] = await resolve_image_url(item.get('media_type'), item.get('tmdb_id'))
+        return item
+    return list(await asyncio.gather(*[add_url(item) for item in items]))
 
 
 # ============================================================================
-# API ROUTES
+# TRAKT API
 # ============================================================================
 
-@app.route('/health', methods=['GET'])
-def health():
-    """Health check endpoint."""
+CATEGORY_TITLES = {
+    'watching':          'Live',
+    'continue_watching': 'Watching',
+    'recently_watched':  'Watched',
+    'upcoming':          'Upcoming',
+    'recommended':       'Recommended',
+    'watchlist':         'Watchlist',
+    'collection':        'Collection',
+}
+VALID_CATEGORIES = set(CATEGORY_TITLES)
+
+
+async def trakt_get(path: str, token: str, client_id: str, params: dict = None) -> tuple[int, any]:
+    try:
+        resp = await http.get(
+            f"{TRAKT_API_BASE}{path}",
+            headers={
+                'Authorization':     f'Bearer {token}',
+                'trakt-api-key':     client_id,
+                'trakt-api-version': '2',
+                'Content-Type':      'application/json',
+            },
+            params=params or {},
+        )
+        if resp.status_code == 204: return 204, None
+        if resp.status_code == 200: return 200, resp.json()
+        logger.warning(f"Trakt {path} → {resp.status_code}")
+        return resp.status_code, None
+    except Exception as e:
+        logger.error(f"Trakt error {path}: {e}")
+        return 0, None
+
+
+# ---- data helpers ----
+
+def _ep(i):    return i.get('episode') or {}
+def _show(i):  return i.get('show')    or {}
+def _movie(i): return i.get('movie')   or {}
+def _ids(o):   return o.get('ids')     or {}
+
+
+def _group_episodes(items: list, ep_mapper) -> list:
+    show_map, order, seen = {}, [], set()
+    for item in items:
+        show     = _show(item)
+        show_key = show.get('title', 'Unknown')
+        ep       = _ep(item)
+        ep_key   = f"{show_key}-S{ep.get('season')}E{ep.get('number')}"
+        if ep_key in seen:
+            continue
+        seen.add(ep_key)
+        if show_key not in show_map:
+            show_map[show_key] = {
+                'type': 'show_group', 'show': show.get('title'),
+                'tmdb_id': _ids(show).get('tmdb'), 'trakt_slug': _ids(show).get('slug'),
+                'media_type': 'show', 'episodes': [],
+            }
+            order.append(show_key)
+        show_map[show_key]['episodes'].append(ep_mapper(item))
+    return [show_map[k] for k in order]
+
+
+def _dedupe_movies(items: list, mapper) -> list:
+    seen, order = {}, []
+    for item in items:
+        m   = _movie(item)
+        key = f"{m.get('title')}-{m.get('year')}"
+        if key not in seen:
+            seen[key] = mapper(item)
+            order.append(key)
+    return [seen[k] for k in order]
+
+
+async def _enrich_progress(show_groups: list, token: str, client_id: str) -> list:
+    async def fetch_one(sg):
+        slug = sg.get('trakt_slug')
+        if not slug:
+            return sg
+        status, data = await trakt_get(f"/shows/{slug}/progress/watched", token, client_id)
+        if status == 200 and data:
+            sg['show_progress'] = {'aired': data.get('aired', 0), 'completed': data.get('completed', 0)}
+            last_ep = sg['episodes'][-1] if sg['episodes'] else None
+            if last_ep:
+                for season in data.get('seasons', []):
+                    if season.get('number') == last_ep.get('season'):
+                        sg['season_progress'] = {'aired': season.get('aired', 0), 'completed': season.get('completed', 0)}
+                        break
+        return sg
+    return list(await asyncio.gather(*[fetch_one(sg) for sg in show_groups]))
+
+
+# ---- per-category fetchers ----
+
+async def _fetch_watching(token, client_id) -> list:
+    status, data = await trakt_get('/users/me/watching', token, client_id)
+    if status != 200 or not data:
+        return []
+    t = data.get('type')
+    if t == 'episode':
+        show, ep = _show(data), _ep(data)
+        return [{'type': 'show_group', 'show': show.get('title'),
+                 'tmdb_id': _ids(show).get('tmdb'), 'trakt_slug': _ids(show).get('slug'),
+                 'media_type': 'show',
+                 'episodes': [{'season': ep.get('season'), 'episode': ep.get('number'),
+                               'title': ep.get('title'), 'overview': ep.get('overview')}]}]
+    if t == 'movie':
+        m = _movie(data)
+        return [{'type': 'movie', 'title': m.get('title'), 'year': m.get('year'),
+                 'overview': m.get('overview'), 'tmdb_id': _ids(m).get('tmdb'), 'media_type': 'movie'}]
+    return []
+
+
+async def _fetch_continue_watching(token, client_id) -> list:
+    (_, eps), (_, movs) = await asyncio.gather(
+        trakt_get('/sync/playback/episodes', token, client_id, {'extended': 'full'}),
+        trakt_get('/sync/playback/movies',   token, client_id, {'extended': 'full'}),
+    )
+    show_groups = _group_episodes(eps or [], lambda i: {
+        'season': _ep(i).get('season'), 'episode': _ep(i).get('number'),
+        'title': _ep(i).get('title'), 'overview': _ep(i).get('overview'),
+        'progress': round(i.get('progress', 0)),
+    })
+    show_groups = await _enrich_progress(show_groups, token, client_id)
+    movies = _dedupe_movies(movs or [], lambda i: {
+        'type': 'movie', 'title': _movie(i).get('title'), 'year': _movie(i).get('year'),
+        'overview': _movie(i).get('overview'), 'progress': round(i.get('progress', 0)),
+        'tmdb_id': _ids(_movie(i)).get('tmdb'), 'media_type': 'movie',
+    })
+    return show_groups + movies
+
+
+async def _fetch_recently_watched(token, client_id) -> list:
+    (_, eps), (_, movs) = await asyncio.gather(
+        trakt_get('/sync/history/episodes', token, client_id, {'page': 1, 'limit': 10, 'extended': 'full'}),
+        trakt_get('/sync/history/movies',   token, client_id, {'page': 1, 'limit': 10, 'extended': 'full'}),
+    )
+    show_groups = _group_episodes(eps or [], lambda i: {
+        'season': _ep(i).get('season'), 'episode': _ep(i).get('number'),
+        'title': _ep(i).get('title'), 'overview': _ep(i).get('overview'),
+        'watched_at': i.get('watched_at'),
+    })
+    movies = _dedupe_movies(movs or [], lambda i: {
+        'type': 'movie', 'title': _movie(i).get('title'), 'year': _movie(i).get('year'),
+        'overview': _movie(i).get('overview'), 'watched_at': i.get('watched_at'),
+        'tmdb_id': _ids(_movie(i)).get('tmdb'), 'media_type': 'movie',
+    })
+    return show_groups + movies
+
+
+async def _fetch_upcoming(token, client_id, today: str) -> list:
+    (_, shows), (_, movs) = await asyncio.gather(
+        trakt_get(f'/calendars/my/shows/{today}/7',   token, client_id, {'extended': 'full'}),
+        trakt_get(f'/calendars/my/movies/{today}/30', token, client_id, {'extended': 'full'}),
+    )
+    show_groups = _group_episodes(shows or [], lambda i: {
+        'season': _ep(i).get('season'), 'episode': _ep(i).get('number'),
+        'title': _ep(i).get('title'), 'overview': _ep(i).get('overview'),
+        'airs_at': i.get('first_aired'),
+    })
+    movies = _dedupe_movies(movs or [], lambda i: {
+        'type': 'movie', 'title': _movie(i).get('title'), 'year': _movie(i).get('year'),
+        'overview': _movie(i).get('overview'), 'released': i.get('released'),
+        'tmdb_id': _ids(_movie(i)).get('tmdb'), 'media_type': 'movie',
+    })
+    return show_groups + movies
+
+
+async def _fetch_recommended(token, client_id) -> list:
+    (_, shows), (_, movs) = await asyncio.gather(
+        trakt_get('/recommendations/shows',  token, client_id, {'limit': 10, 'extended': 'full'}),
+        trakt_get('/recommendations/movies', token, client_id, {'limit': 10, 'extended': 'full'}),
+    )
+    def _rating(item): return round(item['rating'] * 10) / 10 if item.get('rating') else None
+
+    rec_shows, seen = [], set()
+    for item in (shows or []):
+        if item.get('title') not in seen:
+            seen.add(item['title'])
+            rec_shows.append({'type': 'show', 'title': item.get('title'), 'year': item.get('year'),
+                              'genres': item.get('genres') or [], 'overview': item.get('overview'),
+                              'rating': _rating(item), 'network': item.get('network'),
+                              'tmdb_id': _ids(item).get('tmdb'), 'media_type': 'show'})
+    rec_movs, seen = [], set()
+    for item in (movs or []):
+        key = f"{item.get('title')}-{item.get('year')}"
+        if key not in seen:
+            seen.add(key)
+            rec_movs.append({'type': 'movie', 'title': item.get('title'), 'year': item.get('year'),
+                             'genres': item.get('genres') or [], 'overview': item.get('overview'),
+                             'rating': _rating(item), 'tmdb_id': _ids(item).get('tmdb'), 'media_type': 'movie'})
+
+    result = []
+    for i in range(max(len(rec_shows), len(rec_movs))):
+        if i < len(rec_movs):  result.append(rec_movs[i])
+        if i < len(rec_shows): result.append(rec_shows[i])
+    return result
+
+
+async def _fetch_list(cat: str, token: str, client_id: str) -> list:
+    (_, raw_shows), (_, raw_movs) = await asyncio.gather(
+        trakt_get(f'/users/me/{cat}/shows',  token, client_id, {'extended': 'full'}),
+        trakt_get(f'/users/me/{cat}/movies', token, client_id, {'extended': 'full'}),
+    )
+    def _rating(obj): return round(obj['rating'] * 10) / 10 if obj.get('rating') else None
+
+    shows, seen = [], set()
+    for item in (raw_shows or []):
+        s = _show(item)
+        if s.get('title') not in seen:
+            seen.add(s['title'])
+            shows.append({'type': 'show', 'title': s.get('title'), 'year': s.get('year'),
+                          'genres': s.get('genres') or [], 'overview': s.get('overview'),
+                          'rating': _rating(s), 'network': s.get('network'),
+                          'tmdb_id': _ids(s).get('tmdb'), 'media_type': 'show'})
+    movs, seen = [], set()
+    for item in (raw_movs or []):
+        m   = _movie(item)
+        key = f"{m.get('title')}-{m.get('year')}"
+        if key not in seen:
+            seen.add(key)
+            movs.append({'type': 'movie', 'title': m.get('title'), 'year': m.get('year'),
+                         'genres': m.get('genres') or [], 'overview': m.get('overview'),
+                         'rating': _rating(m), 'tmdb_id': _ids(m).get('tmdb'), 'media_type': 'movie'})
+    return shows + movs
+
+
+async def fetch_category(cat: str, token: str, client_id: str, today: str) -> list:
+    if cat == 'watching':          return await _fetch_watching(token, client_id)
+    if cat == 'continue_watching': return await _fetch_continue_watching(token, client_id)
+    if cat == 'recently_watched':  return await _fetch_recently_watched(token, client_id)
+    if cat == 'upcoming':          return await _fetch_upcoming(token, client_id, today)
+    if cat == 'recommended':       return await _fetch_recommended(token, client_id)
+    if cat in ('watchlist', 'collection'): return await _fetch_list(cat, token, client_id)
+    return []
+
+
+# ============================================================================
+# ROUTES
+# ============================================================================
+
+@app.get('/health')
+async def health():
     redis_ok = False
     if redis_client:
         try:
-            redis_client.ping()
+            await redis_client.ping()
             redis_ok = True
         except Exception:
             pass
-
-    return jsonify({
+    return {
         'status': 'healthy',
         'timestamp': datetime.utcnow().isoformat(),
         'redis': 'connected' if redis_ok else 'disconnected',
         'tmdb_configured': bool(TMDB_API_KEY),
         'fanart_configured': bool(FANART_API_KEY),
         'ip_whitelist_enabled': ENABLE_IP_WHITELIST,
-        'last_ip_refresh': last_ip_refresh.isoformat() if last_ip_refresh else None,
-    })
+    }
 
 
-@app.route('/image/<media_type>/<tmdb_id>', methods=['GET'])
-@require_whitelisted_ip
-def serve_image(media_type, tmdb_id):
+@app.get('/query')
+async def trakt_tv_data(
+    request: Request,
+    categories: str = Query(default=''),
+    _=Depends(require_whitelisted_ip),
+):
     """
-    Serve a poster image for a show or movie.
-    media_type: 'show' or 'movie'
-    tmdb_id: TMDB ID (numeric string)
+    Aggregate Trakt.tv data for the TRMNL plugin.
+
+    Headers:  Authorization: Bearer {token}   trakt-api-key: {client_id}
+    Params:   categories=watching,continue_watching,recently_watched,…
     """
-    if media_type not in ('show', 'movie'):
-        return jsonify({'error': 'Invalid media type, use "show" or "movie"'}), 400
+    token     = request.headers.get('Authorization', '').removeprefix('Bearer ').strip()
+    client_id = request.headers.get('trakt-api-key', '').strip()
+    if not token or not client_id:
+        raise HTTPException(status_code=401, detail='Missing Authorization or trakt-api-key header')
 
-    if not tmdb_id.isdigit():
-        return jsonify({'error': 'Invalid TMDB ID'}), 400
+    cats = [c for c in (c.strip() for c in categories.split(',')) if c in VALID_CATEGORIES]
+    if not cats:
+        cats = ['continue_watching', 'recently_watched', 'upcoming', 'recommended']
 
-    image_bytes, source = get_image(media_type, tmdb_id)
+    today = datetime.utcnow().strftime('%Y-%m-%d')
 
-    if image_bytes is None:
-        return Response('Not Found', status=404, headers={
-            'X-Image-Source': source,
-            'Cache-Control': 'public, max-age=3600',
-        })
-
-    return Response(
-        image_bytes,
-        status=200,
-        content_type='image/jpeg',
-        headers={
-            'X-Image-Source': source,
-            'Cache-Control': 'public, max-age=86400',
-        },
+    # Fetch user, stats, and all categories concurrently
+    results = await asyncio.gather(
+        trakt_get('/users/me',       token, client_id),
+        trakt_get('/users/me/stats', token, client_id),
+        *[fetch_category(cat, token, client_id, today) for cat in cats],
     )
+    (_, user_data), (_, stats_data), *cat_items = results
 
+    user_data  = user_data  or {}
+    stats_data = stats_data or {}
+    ep_stats   = stats_data.get('episodes') or {}
+    mov_stats  = stats_data.get('movies')   or {}
+    show_stats = stats_data.get('shows')    or {}
 
-# ============================================================================
-# STARTUP
-# ============================================================================
+    # Resolve image URLs for all items across all categories concurrently
+    all_items   = [item for items in cat_items for item in items]
+    enriched    = await enrich_images(all_items)
+    # Re-split back into per-category lists
+    idx = 0
+    enriched_cats = []
+    for items in cat_items:
+        n = len(items)
+        enriched_cats.append(enriched[idx:idx + n])
+        idx += n
 
-def initialize():
-    """Initialize the application."""
-    logger.info("Starting TRMNL Trakt.tv Image Proxy")
+    categories_out = {}
+    has_content    = False
+    for cat, items in zip(cats, enriched_cats):
+        if items:
+            has_content = True
+        categories_out[cat] = {'key': cat, 'title': CATEGORY_TITLES[cat], 'items': items}
 
-    connect_redis()
+    return { 'data: ': {
 
-    if ENABLE_IP_WHITELIST:
-        logger.info("IP whitelist enabled")
-        update_trmnl_ips()
-        start_ip_refresh_worker()
-    else:
-        logger.warning("IP whitelist DISABLED — all IPs allowed")
-
-    if not TMDB_API_KEY:
-        logger.warning("TMDB_API_KEY not set — image lookups will fail")
-
-    logger.info("Application initialized successfully")
-
-
-initialize()
-
-
-if __name__ == '__main__':
-    port = int(os.getenv('PORT', '5000'))
-    app.run(host='0.0.0.0', port=port, debug=False)
+        'user':  {'username': user_data.get('username')},
+        'stats': {
+            'hours_watched':      math.floor(ep_stats.get('minutes', 0) / 60),
+            'episodes_collected': ep_stats.get('collected', 0),
+            'movies_collected':   mov_stats.get('collected', 0),
+            'shows_collected':    show_stats.get('collected', 0),
+        },
+        'categories':  categories_out,
+        'has_content': has_content,
+    }
+}

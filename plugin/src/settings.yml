@@ -4,8 +4,8 @@ no_screen_padding: 'no'
 dark_mode: 'no'
 static_data: ''
 polling_verb: get
-polling_url: "  {% assign today_ts = trmnl.system.timestamp_utc | plus: trmnl.user.utc_offset %}                                                                                                                                        \r\n  {% assign today = today_ts | date: \"%Y-%m-%d\" %}                                                                                                                                                                        \r\n  {% assign _p1 = trmnl.plugin_settings.custom_fields_values.priority_1 | default: \"continue_watching\" %}                                                                                                                 \r\n  {% assign _p2 = trmnl.plugin_settings.custom_fields_values.priority_2 | default: \"recently_watched\" %}                                                                                                                  \r\n  {% assign _p3 = trmnl.plugin_settings.custom_fields_values.priority_3 | default: \"upcoming\" %}                                                                                                                        \r\n  {% assign _p4 = trmnl.plugin_settings.custom_fields_values.priority_4 | default: \"recommended\" %}\r\n  {% assign _cats = _p1 | append: \",\" | append: _p2 | append: \",\" | append: _p3 | append: \",\" | append: _p4 | split: \",\" %}\r\n  {% assign _seen = \"\" %}\r\n  https://api.trakt.tv/users/me\r\n  https://api.trakt.tv/users/me/stats\r\n  {% for _cat in _cats %}{% unless _seen contains _cat %}{% assign _seen = _seen | append: _cat | append: \",\" %}{% if _cat == \"continue_watching\" %}\r\n  https://api.trakt.tv/sync/playback/episodes?extended=full\r\n  https://api.trakt.tv/sync/playback/movies?extended=full{% elsif _cat == \"recently_watched\" %}\r\n  https://api.trakt.tv/sync/history/episodes?page=1&limit=10&extended=full\r\n  https://api.trakt.tv/sync/history/movies?page=1&limit=10&extended=full{% elsif _cat == \"upcoming\" %}\r\n  https://api.trakt.tv/calendars/my/shows/{{ today }}/7?extended=full\r\n  https://api.trakt.tv/calendars/my/movies/{{ today }}/30?extended=full{% elsif _cat == \"recommended\" %}\r\n  https://api.trakt.tv/recommendations/shows?limit=10&extended=full\r\n  https://api.trakt.tv/recommendations/movies?limit=10&extended=full{% elsif _cat == \"watchlist\" %}\r\n  https://api.trakt.tv/users/me/watchlist/shows?extended=full\r\n  https://api.trakt.tv/users/me/watchlist/movies?extended=full{% elsif _cat == \"collection\" %}\r\n  https://api.trakt.tv/users/me/collection/shows?extended=full\r\n  https://api.trakt.tv/users/me/collection/movies?extended=full{% endif %}{% endunless %}{% endfor %}\r\n"
-polling_headers: Authorization=Bearer%20{{ oauth_access_token }}&Content-Type=application/json&trakt-api-version=2&trakt-api-key={{ oauth_client_id }}
+polling_url: "{% assign _p1 = trmnl.plugin_settings.custom_fields_values.priority_1 | default: \"continue_watching\" %}\r\n{% assign _p2 = trmnl.plugin_settings.custom_fields_values.priority_2 | default: \"recently_watched\" %}\r\n{% assign _p3 = trmnl.plugin_settings.custom_fields_values.priority_3 | default: \"upcoming\" %}\r\n{% assign _p4 = trmnl.plugin_settings.custom_fields_values.priority_4 | default: \"recommended\" %}\r\n{% assign _p5 = trmnl.plugin_settings.custom_fields_values.priority_5 | default: \"none\" %}\r\n{% assign _cats = _p1 | append: \",\" | append: _p2 | append: \",\" | append: _p3 | append: \",\" | append: _p4 | append: \",\" | append: _p5 | split: \",\" %}\r\n{% assign _seen = \"\" %}{% assign _unique = \"\" %}\r\n{% for _cat in _cats %}{% unless _seen contains _cat or _cat == \"none\" %}{% if _unique != \"\" %}{% assign _unique = _unique | append: \",\" %}{% endif %}{% assign _unique = _unique | append: _cat %}{% assign _seen = _seen | append: _cat | append: \",\" %}{% endunless %}{% endfor %}\r\nhttps://trmnl.bettens.dev/trakttv/query?categories={{ _unique }}\r\n"
+polling_headers: Authorization=Bearer%20{{ oauth_access_token }}&trakt-api-key={{ oauth_client_id }}
 polling_body: ''
 id: 245666
 custom_fields:
@@ -15,6 +15,7 @@ custom_fields:
   description: |
     Track your Trakt.tv activity right on your TRMNL device.<br /><br />
     <strong>Available categories</strong><br />
+    · <strong>Now Watching</strong> — currently playing<br />
     · <strong>Continue Watching</strong> — paused shows &amp; movies<br />
     · <strong>Recently Watched</strong> — your watch history<br />
     · <strong>Upcoming</strong> — next episodes &amp; releases<br />
@@ -31,6 +32,7 @@ custom_fields:
   name: 1st Category
   description: Category shown in the first position.
   options:
+  - Now Watching: watching
   - Continue Watching: continue_watching
   - Recently Watched: recently_watched
   - Upcoming: upcoming
@@ -44,6 +46,7 @@ custom_fields:
   name: 2nd Category
   description: Category shown in the second position.
   options:
+  - Now Watching: watching
   - Continue Watching: continue_watching
   - Recently Watched: recently_watched
   - Upcoming: upcoming
@@ -57,6 +60,7 @@ custom_fields:
   name: 3rd Category
   description: Category shown in the third position.
   options:
+  - Now Watching: watching
   - Continue Watching: continue_watching
   - Recently Watched: recently_watched
   - Upcoming: upcoming
@@ -70,6 +74,7 @@ custom_fields:
   name: 4th Category
   description: Category shown in the fourth position.
   options:
+  - Now Watching: watching
   - Continue Watching: continue_watching
   - Recently Watched: recently_watched
   - Upcoming: upcoming
@@ -78,6 +83,21 @@ custom_fields:
   - Collection: collection
   - None: none
   default: recommended
+- keyname: priority_5
+  field_type: select
+  name: 5th Category
+  description: Category shown in the fifth position.
+  options:
+  - Now Watching: watching
+  - Continue Watching: continue_watching
+  - Recently Watched: recently_watched
+  - Upcoming: upcoming
+  - Recommended: recommended
+  - Watchlist: watchlist
+  - Collection: collection
+  - None: none
+  default: none
+  optional: true
 - keyname: show_images
   field_type: boolean
   name: Show Images
