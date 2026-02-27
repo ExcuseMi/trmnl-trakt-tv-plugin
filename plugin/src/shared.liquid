@@ -11,7 +11,19 @@ filter:invert(1);
 }
 </style>
 {% capture movie_icon %}
-<svg class="image-stroke w--5 h--5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path opacity=".6" fill-rule="evenodd" clip-rule="evenodd" d="M3 4h18a1 1 0 0 1 1 1v1H2V5a1 1 0 0 1 1-1z" fill="#000000"/><path opacity=".3" fill-rule="evenodd" clip-rule="evenodd" d="M5 2h14a1 1 0 0 1 1 1v1H4V3a1 1 0 0 1 1-1z" fill="#000000"/><path fill-rule="evenodd" clip-rule="evenodd" d="M1 6h22a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zm0 2v3h3V8H1zm0 5v3h3v-3H1zm0 5v3h3v-3H1zM20 8v3h3V8h-3zm0 5v3h3v-3h-3zm0 5v3h3v-3h-3z" fill="#000000"/></svg>
+<svg class="image-stroke w--5 h--5" version="1.1" id="_x32_" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 	 viewBox="0 0 512 512"  xml:space="preserve"><style type="text/css">
+<![CDATA[
+	.st0{fill:#000000;}
+]]>
+</style>
+<g>
+	<path class="st0" d="M0,48v416h512V48H0z M228,88h56v32h-56V88z M92,424H36v-32h56V424z M92,120H36V88h56V120z M188,424h-56v-32h56
+		V424z M188,120h-56V88h56V120z M284,424h-56v-32h56V424z M311.188,257.859l-92.156,55.016c-0.672,0.391-1.5,0.406-2.172,0.016
+		s-1.094-1.094-1.094-1.891v-55v-55c0-0.781,0.422-1.5,1.094-1.875c0.672-0.391,1.5-0.375,2.172,0.016l92.156,55.016
+		c0.656,0.375,1.047,1.094,1.047,1.844C312.234,256.766,311.844,257.469,311.188,257.859z M380,424h-56v-32h56V424z M380,120h-56V88
+		h56V120z M476,424h-56v-32h56V424z M476,120h-56V88h56V120z"/>
+</g>
+</svg>
 {% endcapture %}
 
 {% capture show_icon %}
@@ -42,11 +54,10 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
 <div class="item stretch">
       <div class="meta"></div>
       <div class="content">
-          <span class="title title--small">{{stat.label}}</span>
-          {% if stat.title %}<span class="title title--small">{{stat.title}}</span>{% endif %}
-
+          <span class="title title--small lg:title--base">{{stat.label}}</span>
+          {% if stat.title %}<span class="title title--small lg:title--base">{{stat.title}}</span>{% endif %}
                 {% for val in stat.values %}
-                <div class="description">{{val.label}}: {{val.value}}</div>
+                <div class="description lg:description--large">{{val.label}}: {{val.value}}</div>
                 {% endfor %}
             </span>
      </div>
@@ -215,7 +226,7 @@ cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
     {% if cat.items.size > 0 %}
 
     <div class="item h--min-40 m--1" style="flex-grow:0;align-items:stretch;border:2px solid #000;box-shadow:4px 4px 0 0 #000;">
-      {% assign _title_len = cat.title | size %}{% if _title_len > 8 %}{% assign _bar_font = "font-size:0.7em;" %}{% elsif _title_len > 6 %}{% assign _bar_font = "font-size:0.75em;" %}{% else %}{% assign _bar_font = "" %}{% endif %}
+      {% assign _bar_font = "font-size:0.75em;" %}
       <div class="meta w--6 bg--black" 
         style="writing-mode:vertical-lr;letter-spacing:0.1em;font-weight:700;text-align:center;flex-shrink:0;color:white;background-color:black;margin:4px 0;{{_bar_font}}">{{cat.title | upcase}}</div>
       <div class="flex flex--row p--1 stretch" >

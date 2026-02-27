@@ -22,6 +22,7 @@ custom_fields:
     · <strong>Recommended</strong> — personalized picks from Trakt <em>(self only)</em><br />
     · <strong>Watchlist</strong> — saved items<br />
     · <strong>Collection</strong> — collected media<br />
+    · <strong>Stats</strong> — watch statistics<br />
     · <strong>Trending</strong> — what's popular right now<br /><br />
     <strong>Requires Trakt.tv OAuth</strong>
   category: entertainment
@@ -40,8 +41,8 @@ custom_fields:
   - Recommended: recommended
   - Watchlist: watchlist
   - Collection: collection
-  - Trending: trending
   - Stats: stats
+  - Trending: trending
   - None: none
   default: continue_watching
 - keyname: priority_2
@@ -56,6 +57,7 @@ custom_fields:
   - Recommended: recommended
   - Watchlist: watchlist
   - Collection: collection
+  - Stats: stats
   - Trending: trending
   - None: none
   default: recently_watched
@@ -71,6 +73,7 @@ custom_fields:
   - Recommended: recommended
   - Watchlist: watchlist
   - Collection: collection
+  - Stats: stats
   - Trending: trending
   - None: none
   default: upcoming
@@ -86,6 +89,7 @@ custom_fields:
   - Recommended: recommended
   - Watchlist: watchlist
   - Collection: collection
+  - Stats: stats
   - Trending: trending
   - None: none
   default: recommended
@@ -101,14 +105,16 @@ custom_fields:
   - Recommended: recommended
   - Watchlist: watchlist
   - Collection: collection
+  - Stats: stats
   - Trending: trending
   - None: none
   default: none
   optional: true
 - keyname: username
-  field_type: string
+  field_type: text
   name: Target Username
-  description: 'Trakt.tv username to display. Leave empty to show your own account. Note: Continue Watching, Recently Watched, Upcoming, and Recommended are only available for your own account.'
+  description: Trakt.tv username to display.<br />Leave empty to show your own account.
+  help_text: 'Note: Continue Watching, Recently Watched, Upcoming, Stats  and Recommended are only available for your own account.'
   optional: true
 - keyname: show_images
   field_type: boolean
