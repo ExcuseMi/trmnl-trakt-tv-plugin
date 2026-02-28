@@ -282,9 +282,35 @@ async def trakt_get(path: str, token: str, client_id: str, params: dict = None) 
             },
             params=params or {},
         )
+
+        # Log rate limit info from every response so we can monitor headroom
+        rl_raw = resp.headers.get('X-Ratelimit')
+        if rl_raw:
+            try:
+                rl = json.loads(rl_raw)
+                remaining = rl.get('remaining', '?')
+                limit     = rl.get('limit', '?')
+                name      = rl.get('name', '?')
+                retry_after = resp.headers.get('Retry-After')
+                if resp.status_code == 429:
+                    logger.error(
+                        f"Trakt rate limit HIT — {name} {remaining}/{limit} remaining "
+                        f"| retry after {retry_after}s | until {rl.get('until')} | path={path}"
+                    )
+                elif isinstance(remaining, int) and isinstance(limit, int) and limit > 0:
+                    pct = remaining / limit
+                    msg = f"Trakt rate limit — {name} {remaining}/{limit} remaining ({pct:.0%}) | path={path}"
+                    if pct < 0.1:
+                        logger.warning(msg)
+                    else:
+                        logger.debug(msg)
+            except Exception:
+                pass
+
         if resp.status_code == 204: return 204, None
         if resp.status_code == 200: return 200, resp.json()
-        logger.warning(f"Trakt {path} → {resp.status_code}")
+        if resp.status_code != 429:
+            logger.warning(f"Trakt {path} → {resp.status_code}")
         return resp.status_code, None
     except Exception as e:
         logger.error(f"Trakt error {path}: {e}")
