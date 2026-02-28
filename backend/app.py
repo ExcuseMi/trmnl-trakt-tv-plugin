@@ -534,7 +534,7 @@ async def _fetch_trending(token, client_id) -> list:
 
 async def _fetch_watching(token, client_id, username: str = '') -> list:
     target = username or 'me'
-    status, data = await trakt_get(f'/users/{target}/watching', token, client_id)
+    status, data = await trakt_get(f'/users/{target}/watching', token, client_id, {'extended': 'full'})
     if status != 200 or not data:
         return []
     t = data.get('type')
