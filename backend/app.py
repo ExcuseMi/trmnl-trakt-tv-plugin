@@ -12,7 +12,7 @@ import logging
 import math
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
@@ -309,6 +309,13 @@ async def trakt_get(path: str, token: str, client_id: str, params: dict = None) 
 
         if resp.status_code == 204: return 204, None
         if resp.status_code == 200: return 200, resp.json()
+        if resp.status_code == 423:
+            locked      = resp.headers.get('X-Account-Locked',      '').lower() == 'true'
+            deactivated = resp.headers.get('X-Account-Deactivated', '').lower() == 'true'
+            logger.error(
+                f"Trakt account issue — locked={locked} deactivated={deactivated} | path={path}"
+            )
+            return 423, {'locked': locked, 'deactivated': deactivated}
         if resp.status_code != 429:
             logger.warning(f"Trakt {path} → {resp.status_code}")
         return resp.status_code, None
@@ -786,7 +793,7 @@ async def health():
             pass
     return {
         'status': 'healthy',
-        'timestamp': datetime.utcnow().isoformat(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
         'redis': 'connected' if redis_ok else 'disconnected',
         'tmdb_configured': bool(TMDB_API_KEY),
         'fanart_configured': bool(FANART_API_KEY),
@@ -797,8 +804,9 @@ async def health():
 @app.get('/query')
 async def trakt_tv_data(
     request: Request,
-    categories: str = Query(default=''),
-    username:   str = Query(default=''),
+    categories:  str = Query(default=''),
+    username:    str = Query(default=''),
+    utc_offset:  int = Query(default=0),
     _=Depends(require_whitelisted_ip),
 ):
     """
@@ -832,101 +840,125 @@ async def trakt_tv_data(
             logger.debug("query cache hit")
             return json.loads(cached)
 
-    today      = datetime.utcnow().strftime('%Y-%m-%d')
-    stats_path = f'/users/{username}/stats' if username else '/users/me/stats'
+    try:
+        today      = datetime.now(timezone(timedelta(seconds=utc_offset))).strftime('%Y-%m-%d')
+        stats_path = f'/users/{username}/stats' if username else '/users/me/stats'
 
-    # stats is built from already-fetched stats_data — don't pass it to fetch_category
-    has_stats      = 'stats' in cats
-    non_stats_cats = [c for c in cats if c != 'stats']
-    target         = username or 'me'
-    watched_tasks  = [
-        trakt_get(f'/users/{target}/watched/movies', token, client_id),
-        trakt_get(f'/users/{target}/watched/shows',  token, client_id),
-    ] if has_stats else []
+        # stats is built from already-fetched stats_data — don't pass it to fetch_category
+        has_stats      = 'stats' in cats
+        non_stats_cats = [c for c in cats if c != 'stats']
+        target         = username or 'me'
+        watched_tasks  = [
+            trakt_get(f'/users/{target}/watched/movies', token, client_id),
+            trakt_get(f'/users/{target}/watched/shows',  token, client_id),
+        ] if has_stats else []
 
-    results = await asyncio.gather(
-        trakt_get('/users/me',             token, client_id),
-        trakt_get(stats_path,              token, client_id),
-        trakt_get('/sync/ratings/movies',  token, client_id),
-        trakt_get('/sync/ratings/shows',   token, client_id),
-        *watched_tasks,
-        *[fetch_category(cat, token, client_id, today, username) for cat in non_stats_cats],
-    )
-    if has_stats:
-        (_, user_data), (_, stats_data), (_, rated_movies), (_, rated_shows), \
-            (_, top_movies_raw), (_, top_shows_raw), *cat_items = results
-        top_movies = top_movies_raw[:1] if top_movies_raw else []
-        top_shows  = top_shows_raw[:1]  if top_shows_raw  else []
-    else:
-        (_, user_data), (_, stats_data), (_, rated_movies), (_, rated_shows), *cat_items = results
-        top_movies = []
-        top_shows  = []
+        results = await asyncio.gather(
+            trakt_get('/users/me',             token, client_id),
+            trakt_get(stats_path,              token, client_id),
+            trakt_get('/sync/ratings/movies',  token, client_id),
+            trakt_get('/sync/ratings/shows',   token, client_id),
+            *watched_tasks,
+            *[fetch_category(cat, token, client_id, today, username) for cat in non_stats_cats],
+        )
 
-    user_data  = user_data  or {}
-    stats_data = stats_data or {}
-    ep_stats   = stats_data.get('episodes') or {}
-    mov_stats  = stats_data.get('movies')   or {}
-    show_stats = stats_data.get('shows')    or {}
+        # Check for account/auth issues before unpacking
+        user_status, user_raw = results[0]
+        if user_status == 423:
+            deactivated = (user_raw or {}).get('deactivated', False)
+            code        = 'account_deactivated' if deactivated else 'account_locked'
+            msg         = ('Your Trakt account has been deactivated.'
+                           if deactivated else 'Your Trakt account is locked.')
+            return {'data': {'error': {'code': code,
+                                       'message': msg + ' Please email support@trakt.tv to restore access.'}}}
+        if user_status in (401, 403):
+            return {'data': {'error': {
+                'code':    'auth_error',
+                'message': 'Authentication failed. Please reconnect your Trakt account in TRMNL settings.',
+            }}}
 
-    # Build favorites sets from ratings ≥ 8
-    fav_movie_ids = {_ids(_movie(i)).get('tmdb') for i in (rated_movies or []) if i.get('rating', 0) >= 8} - {None}
-    fav_show_ids  = {_ids(_show(i)).get('tmdb')  for i in (rated_shows  or []) if i.get('rating', 0) >= 8} - {None}
-
-    await enrich_progress_all(cat_items, token, client_id)
-
-    # Mark favorites
-    for items in cat_items:
-        for item in items:
-            tid = item.get('tmdb_id')
-            if item.get('type') == 'movie' and tid in fav_movie_ids:
-                item['favorited'] = True
-            elif item.get('type') in ('show', 'show_group') and tid in fav_show_ids:
-                item['favorited'] = True
-
-    all_items = [item for items in cat_items for item in items]
-    enriched  = await enrich_images(all_items)
-
-    idx = 0
-    enriched_cats = []
-    for items in cat_items:
-        n = len(items)
-        enriched_cats.append(enriched[idx:idx + n])
-        idx += n
-
-    categories_out = []
-    has_content    = False
-    non_stats_idx  = 0
-    for cat in cats:
-        if cat == 'stats':
-            items = _build_stat_items(stats_data, top_movies, top_shows)
+        if has_stats:
+            (_, user_data), (_, stats_data), (_, rated_movies), (_, rated_shows), \
+                (_, top_movies_raw), (_, top_shows_raw), *cat_items = results
+            top_movies = top_movies_raw[:1] if top_movies_raw else []
+            top_shows  = top_shows_raw[:1]  if top_shows_raw  else []
         else:
-            items = [_slim_item(i) for i in enriched_cats[non_stats_idx]]
-            non_stats_idx += 1
-        if items:
-            has_content = True
-        categories_out.append({'key': cat, 'title': CATEGORY_TITLES[cat], 'items': items})
+            (_, user_data), (_, stats_data), (_, rated_movies), (_, rated_shows), *cat_items = results
+            top_movies = []
+            top_shows  = []
 
-    summary = {c['key']: len(c['items']) for c in categories_out}
-    logger.info(f"query — user={user_data.get('username')!r} target={username!r} cats={summary}")
+        user_data  = user_data  or {}
+        stats_data = stats_data or {}
+        ep_stats   = stats_data.get('episodes') or {}
+        mov_stats  = stats_data.get('movies')   or {}
+        show_stats = stats_data.get('shows')    or {}
 
-    result = {
-        'data': {
-            'user':  {
-                'username': user_data.get('username'),
-                'avatar':   ((user_data.get('images') or {}).get('avatar') or {}).get('full'),
-            },
-            'stats': {
-                'hours_watched':      math.floor(ep_stats.get('minutes', 0) / 60),
-                'episodes_collected': ep_stats.get('collected', 0),
-                'movies_collected':   mov_stats.get('collected', 0),
-                'shows_collected':    show_stats.get('collected', 0),
-            },
-            'categories':  categories_out,
-            'has_content': has_content,
+        # Build favorites sets from ratings ≥ 8
+        fav_movie_ids = {_ids(_movie(i)).get('tmdb') for i in (rated_movies or []) if i.get('rating', 0) >= 8} - {None}
+        fav_show_ids  = {_ids(_show(i)).get('tmdb')  for i in (rated_shows  or []) if i.get('rating', 0) >= 8} - {None}
+
+        await enrich_progress_all(cat_items, token, client_id)
+
+        # Mark favorites
+        for items in cat_items:
+            for item in items:
+                tid = item.get('tmdb_id')
+                if item.get('type') == 'movie' and tid in fav_movie_ids:
+                    item['favorited'] = True
+                elif item.get('type') in ('show', 'show_group') and tid in fav_show_ids:
+                    item['favorited'] = True
+
+        all_items = [item for items in cat_items for item in items]
+        enriched  = await enrich_images(all_items)
+
+        idx = 0
+        enriched_cats = []
+        for items in cat_items:
+            n = len(items)
+            enriched_cats.append(enriched[idx:idx + n])
+            idx += n
+
+        categories_out = []
+        has_content    = False
+        non_stats_idx  = 0
+        for cat in cats:
+            if cat == 'stats':
+                items = _build_stat_items(stats_data, top_movies, top_shows)
+            else:
+                items = [_slim_item(i) for i in enriched_cats[non_stats_idx]]
+                non_stats_idx += 1
+            if items:
+                has_content = True
+            categories_out.append({'key': cat, 'title': CATEGORY_TITLES[cat], 'items': items})
+
+        summary = {c['key']: len(c['items']) for c in categories_out}
+        logger.info(f"query — user={user_data.get('username')!r} target={username!r} cats={summary}")
+
+        result = {
+            'data': {
+                'user':  {
+                    'username': user_data.get('username'),
+                    'avatar':   ((user_data.get('images') or {}).get('avatar') or {}).get('full'),
+                },
+                'stats': {
+                    'hours_watched':      math.floor(ep_stats.get('minutes', 0) / 60),
+                    'episodes_collected': ep_stats.get('collected', 0),
+                    'movies_collected':   mov_stats.get('collected', 0),
+                    'shows_collected':    show_stats.get('collected', 0),
+                },
+                'categories':  categories_out,
+                'has_content': has_content,
+            }
         }
-    }
 
-    if redis_client:
-        await redis_client.set(cache_key, json.dumps(result), ex=QUERY_CACHE_TTL)
+        if redis_client:
+            await redis_client.set(cache_key, json.dumps(result), ex=QUERY_CACHE_TTL)
 
-    return result
+        return result
+
+    except Exception as e:
+        logger.exception(f"Unhandled error in /query: {e}")
+        return {'data': {'error': {
+            'code':    'server_error',
+            'message': 'Something went wrong on the server. Please check your backend logs.',
+        }}}

@@ -252,6 +252,18 @@ cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
                   {% endif %}
                   {% endfor %}
 
+                  {% if data.error %}
+                  <div class="item m--1" style="flex-grow:1;display:flex;flex-direction:column;justify-content:center;border:2px solid #000;box-shadow:4px 4px 0 0 #000;padding:12px;gap:6px;">
+                    <div class="label w--full text--left m--0">⚠ {{data.error.code | replace: '_', ' ' | upcase}}</div>
+                    <div class="description w--full text--left">{{data.error.message}}</div>
+                  </div>
+                  {% elsif data.has_content == false %}
+                  <div class="item m--1" style="flex-grow:1;display:flex;flex-direction:column;justify-content:center;border:2px solid #000;box-shadow:4px 4px 0 0 #000;padding:12px;gap:6px;">
+                    <div class="label w--full text--left m--0">Nothing to show</div>
+                    <div class="description w--full text--left">All selected categories are empty. Try watching something or adjust your category settings.</div>
+                  </div>
+                  {% endif %}
+
                 </div>
                 </div>
 
