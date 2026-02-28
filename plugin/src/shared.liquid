@@ -10,6 +10,9 @@ line-height:0;
 filter:invert(1);
 }
 </style>
+{% capture trakt_icon %}
+<svg class="image-stroke w--7 h--7" fill="#000000" viewBox="0 0 24 24" role="img" xmlns="http://www.w3.org/2000/svg"><title>Trakt icon</title><path d="M12 24C5.385 24 0 18.615 0 12S5.385 0 12 0s12 5.385 12 12-5.385 12-12 12zm0-22.789C6.05 1.211 1.211 6.05 1.211 12S6.05 22.79 12 22.79 22.79 17.95 22.79 12 17.95 1.211 12 1.211zm-7.11 17.32c1.756 1.92 4.294 3.113 7.11 3.113 1.439 0 2.801-.313 4.027-.876l-6.697-6.68-4.44 4.443zm14.288-.067c1.541-1.71 2.484-3.99 2.484-6.466 0-3.885-2.287-7.215-5.568-8.76l-6.089 6.076 9.164 9.15h.009zm-9.877-8.429L4.227 15.09l-.679-.68 5.337-5.336 6.23-6.225c-.978-.328-2.02-.509-3.115-.509C6.663 2.337 2.337 6.663 2.337 12c0 2.172.713 4.178 1.939 5.801l5.056-5.055.359.329 7.245 7.245c.15-.082.285-.164.42-.266L9.33 12.05l-4.854 4.855-.679-.679 5.535-5.535.359.331 8.46 8.437c.135-.1.255-.215.375-.316L9.39 10.027l-.083.015-.006-.007zm3.047 1.028l-.678-.676 4.788-4.79.679.689-4.789 4.785v-.008zm4.542-6.578l-5.52 5.52-.68-.679 5.521-5.52.679.684v-.005z"/></svg>
+{% endcapture %}
 {% capture movie_icon %}
 <svg class="image-stroke w--5 h--5" version="1.1" id="_x32_" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 	 viewBox="0 0 512 512"  xml:space="preserve"><style type="text/css">
 <![CDATA[
@@ -108,7 +111,7 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
   Both have: show.image_url, show.favorited, show.watchers{% endcomment %}
 {% template show_item %}
 {% assign _title = show.title | default: show.show %}
-{% assign _pct = 0 %}{% if show.show_progress.aired > 0 %}{% assign _pct = show.show_progress.completed | times: 100 | divided_by: show.show_progress.aired %}{% elsif show.progress > 0 %}{% assign _pct = show.progress %}{% endif %}
+{% assign _pct = 0 %}{% assign _has_progress = false %}{% if show.show_progress.aired > 0 %}{% assign _pct = show.show_progress.completed | times: 100 | divided_by: show.show_progress.aired %}{% assign _has_progress = true %}{% elsif show.progress > 0 %}{% assign _pct = show.progress %}{% assign _has_progress = true %}{% endif %}
 <div class="flex flex--row flex--top gap--small show_item">
   {% if show.image_url and show_images != "false" %}
   <div style="position:relative;display:inline-block;flex-shrink:0;align-self:flex-start;overflow:hidden;"><img class="image image--contain image-dither {{img_class}}" src="{{show.image_url}}"/>{% unless img_class == 'hidden' or img_class == ' hidden' %}
@@ -118,7 +121,7 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
   {% endif %}
   <div class="flex flex--col flex--top gap--none w--full h--full">
     <div class="label w--full text--left m--0">{% if show.favorited %}★ {% endif %}{{_title}}</div>
-    {% if _pct > 0 and _pct < 100 %}<div class="w--full" style="height:2px;position:relative;background:#bbb;"><div style="position:absolute;top:0;left:0;width:{{_pct}}%;height:100%;background:#000;"></div></div>{% else %}<div class="w--full" style="height:2px;background:#000;"></div>{% endif %}
+    {% if _pct > 0 and _pct < 100 %}<div class="w--full" style="height:2px;position:relative;background:#bbb;"><div style="position:absolute;top:0;left:0;width:{{_pct}}%;height:100%;background:#000;"></div></div>{% elsif _pct >= 100 %}<div class="w--full" style="height:2px;background:#000;"></div>{% elsif _has_progress %}<div class="w--full" style="height:2px;background:#bbb;"></div>{% else %}<div class="w--full" style="height:2px;background:#000;"></div>{% endif %}
     {% if show.seasons.size > 0 %}
     {% comment %}Episode mode — show_group type{% endcomment %}
     {% for season in show.seasons | limit: 1 %}
@@ -253,7 +256,7 @@ cats_lg_portrait — categories shown at portrait lg (default: cats_lg)
                 </div>
 
                   <div class="title_bar">
-                    <img class="image image-dither rounded" src="https://raw.githubusercontent.com/Taxel/PlexTraktSync/refs/heads/main/trakt.ico">
+                    {% if data.user.avatar %}<img src="{{data.user.avatar}}" class="image image-dither" style="width:20px;height:20px;border-radius:50%;flex-shrink:0;"/>{% else %}{{trakt_icon}}{% endif %}
                     <span class="title">{% assign _iname = trmnl.plugin_settings.instance_name %}{% if _iname and _iname != 'Trakt.tv' %}{{_iname}}{% elsif data.user.username %}{% assign _ul = data.user.username | slice: -1 %}{{data.user.username}}{% if _ul == 's' or _ul == 'S' %}'{% else %}'s{% endif %} Trakt.tv{% else %}Trakt.tv{% endif %}</span>
                     <span class="instance {% if titlebar_instance_class %}{{titlebar_instance_class}}{% endif %}"></span>
                   </div>

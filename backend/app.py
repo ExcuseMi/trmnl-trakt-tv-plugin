@@ -885,7 +885,10 @@ async def trakt_tv_data(
 
     result = {
         'data': {
-            'user':  {'username': user_data.get('username')},
+            'user':  {
+                'username': user_data.get('username'),
+                'avatar':   ((user_data.get('images') or {}).get('avatar') or {}).get('full'),
+            },
             'stats': {
                 'hours_watched':      math.floor(ep_stats.get('minutes', 0) / 60),
                 'episodes_collected': ep_stats.get('collected', 0),
