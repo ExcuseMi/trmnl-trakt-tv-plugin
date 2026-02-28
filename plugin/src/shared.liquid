@@ -59,7 +59,6 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
                 {% for val in stat.values %}
                 <div class="description lg:description--large">{{val.label}}: {{val.value}}</div>
                 {% endfor %}
-            </span>
      </div>
 </div>
 {% endtemplate %}
@@ -80,7 +79,8 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
     </div>{% endunless %}</div>
   {% endif %}
   <div class="flex flex--col flex--top gap--none w--full h--full">
-    <div class="label label--underline w--full text--left m--0" data-clamp="3">{% if movie.favorited %}★ {% endif %}{{movie.title}}</div>
+    <div class="label w--full text--left m--0" data-clamp="3">{% if movie.favorited %}★ {% endif %}{{movie.title}}</div>
+    {% if movie.progress > 0 and movie.progress < 100 %}<div class="w--full" style="height:2px;position:relative;background:#bbb;"><div style="position:absolute;top:0;left:0;width:{{movie.progress}}%;height:100%;background:#000;"></div></div>{% else %}<div class="w--full" style="height:2px;background:#000;"></div>{% endif %}
 
     {% if movie.collected_at %}
     <div class="label label--small w--full text--left m--0" >
@@ -94,12 +94,8 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
     </div>
 
     {% endif %}
-    <div class="label label--small w--full text--left m--0" ><strong class="w--full" >{{movie.year}}{% if movie.genres.size > 0 %} · Movie{% endif %}{% unless movie.progress %}
-      {% if movie.watched_at %}
-      ✔ {% render "date": datetime: movie.watched_at, trmnl:trmnl %}
-
-      {% endif %}
-       {% if movie.rating %} · ★ {{movie.rating}}/10{% endif %}{% endunless %}{% if movie.watchers %} · {{movie.watchers}} watching{% endif %}{% for g in movie.genres limit: 2 %} · {{g}}{% endfor %}</strong></div>
+    {% capture _mmeta %}{{movie.year}}{% if movie.genres.size > 0 %} · Movie{% endif %}{% unless movie.progress %}{% if movie.watched_at %} ✔ {% render "date": datetime: movie.watched_at, trmnl:trmnl %}{% endif %}{% if movie.rating %} · ★ {{movie.rating}}/10{% endif %}{% endunless %}{% if movie.watchers %} · {{movie.watchers}} watching{% endif %}{% for g in movie.genres limit: 2 %} · {{g}}{% endfor %}{% endcapture %}
+    <div class="label label--small w--full text--left m--0"><strong>{{_mmeta | strip | truncate: 200, ""}}</strong></div>
 
     {% render "overview_item", overview_text: movie.overview, desc_clamp: desc_clamp, desc_clamp_lg: desc_clamp_lg, desc_clamp_portrait: desc_clamp_portrait, desc_clamp_lg_portrait: desc_clamp_lg_portrait %}
   </div>
@@ -112,6 +108,7 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
   Both have: show.image_url, show.favorited, show.watchers{% endcomment %}
 {% template show_item %}
 {% assign _title = show.title | default: show.show %}
+{% assign _pct = 0 %}{% if show.show_progress.aired > 0 %}{% assign _pct = show.show_progress.completed | times: 100 | divided_by: show.show_progress.aired %}{% elsif show.progress > 0 %}{% assign _pct = show.progress %}{% endif %}
 <div class="flex flex--row flex--top gap--small show_item">
   {% if show.image_url and show_images != "false" %}
   <div style="position:relative;display:inline-block;flex-shrink:0;align-self:flex-start;overflow:hidden;"><img class="image image--contain image-dither {{img_class}}" src="{{show.image_url}}"/>{% unless img_class == 'hidden' or img_class == ' hidden' %}
@@ -120,7 +117,8 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
   </div>{% endunless %}</div>
   {% endif %}
   <div class="flex flex--col flex--top gap--none w--full h--full">
-    <div class="label label--underline w--full text--left m--0">{% if show.favorited %}★ {% endif %}{{_title}}</div>
+    <div class="label w--full text--left m--0">{% if show.favorited %}★ {% endif %}{{_title}}</div>
+    {% if _pct > 0 and _pct < 100 %}<div class="w--full" style="height:2px;position:relative;background:#bbb;"><div style="position:absolute;top:0;left:0;width:{{_pct}}%;height:100%;background:#000;"></div></div>{% else %}<div class="w--full" style="height:2px;background:#000;"></div>{% endif %}
     {% if show.seasons.size > 0 %}
     {% comment %}Episode mode — show_group type{% endcomment %}
     {% for season in show.seasons | limit: 1 %}
@@ -128,17 +126,8 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
     <div class="label label--small w--full text--left m--0"><i>S{{season.number}}{% if show.total_seasons > 1 %} of {{show.total_seasons}}{% endif %} · E{{season.progress.completed}} of {{season.progress.aired}} {% if show.show_progress and show.show_progress.completed > 0 %} ({% assign _show_pct = show.show_progress.completed | times: 100 | divided_by: show.show_progress.aired %}{{_show_pct}}%{% endif %})</i></div>
     {% endif %}
     {% for ep in season.episodes | limit: 3 %}
-    <div class="label label--small w--full text--left m--0"><strong data-clamp="3">
-      {% if ep.airs_at %}
-      {% render "date": datetime: ep.airs_at, trmnl:trmnl %}:
-      {% endif %}
-      S{{season.number}}E{{ep.episode}}: {{ep.title}}
-      {% if ep.watched_at %}
-      ✔ {% render "date": datetime: ep.watched_at, trmnl:trmnl %}
-      {% endif %}
-      {% if ep.progress %} ({{ep.progress}}%){% endif %}
-
-    </strong></div>
+    {% capture _epmeta %}{% if ep.airs_at %}{% render "date": datetime: ep.airs_at, trmnl:trmnl %}: {% endif %}S{{season.number}}E{{ep.episode}}: {{ep.title}}{% if ep.watched_at %} ✔ {% render "date": datetime: ep.watched_at, trmnl:trmnl %}{% endif %}{% if ep.progress %} ({{ep.progress}}%){% endif %}{% endcapture %}
+    <div class="label label--small w--full text--left m--0"><strong>{{_epmeta | strip | truncate: 200, ""}}</strong></div>
     {% if season.episodes.size == 1 %}{% render "overview_item", overview_text: ep.overview, desc_clamp: desc_clamp, desc_clamp_lg: desc_clamp_lg, desc_clamp_portrait: desc_clamp_portrait, desc_clamp_lg_portrait: desc_clamp_lg_portrait %}{% endif %}
     {% endfor %}
     {% endfor %}
@@ -147,11 +136,8 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
     {% if show.collected_at %}
     <div class="label label--small w--full text--left m--0">Collected at {% render "date": datetime: show.collected_at, trmnl:trmnl %}</div>
     {% endif %}
-    <div class="label label--small w--full text--left m--0"><strong data-clamp="3">
-      {% if show.watched_at %}
-      ✔ {% render "date": datetime: show.watched_at, trmnl:trmnl %}
-      {% endif %}
-      {% if show.progress %}({{show.progress}}%) {% endif %}{{show.year}}{% if show.genres.size > 0 %} · Show{% endif %}{% if show.rating %} · ★ {{show.rating}}/10{% endif %}{% if show.network %} · {{show.network}}{% endif %}{% if show.watchers %} · {{show.watchers}} watching{% endif %}{% for g in show.genres limit: 2 %} · {{g}}{% endfor %}</strong></div>
+    {% capture _smeta %}{% if show.watched_at %}✔ {% render "date": datetime: show.watched_at, trmnl:trmnl %} {% endif %}{% if show.progress %}({{show.progress}}%) {% endif %}{{show.year}}{% if show.genres.size > 0 %} · Show{% endif %}{% if show.rating %} · ★ {{show.rating}}/10{% endif %}{% if show.network %} · {{show.network}}{% endif %}{% if show.watchers %} · {{show.watchers}} watching{% endif %}{% for g in show.genres limit: 2 %} · {{g}}{% endfor %}{% endcapture %}
+    <div class="label label--small w--full text--left m--0"><strong>{{_smeta | strip | truncate: 200, ""}}</strong></div>
     {% render "overview_item", overview_text: show.overview, desc_clamp: desc_clamp, desc_clamp_lg: desc_clamp_lg, desc_clamp_portrait: desc_clamp_portrait, desc_clamp_lg_portrait: desc_clamp_lg_portrait %}
     {% endif %}
   </div>
