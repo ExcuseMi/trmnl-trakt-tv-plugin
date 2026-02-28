@@ -72,6 +72,8 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
 {% endif %}
 {% endtemplate %}
 
+{% template fmt_num %}{% if num >= 1000000000 %}{% assign _n = num | divided_by: 1000000000 %}{% assign _d = num | modulo: 1000000000 | divided_by: 100000000 %}{% if _d == 0 %}{{_n}}b{% else %}{{_n}}.{{_d}}b{% endif %}{% elsif num >= 1000000 %}{% assign _n = num | divided_by: 1000000 %}{% assign _d = num | modulo: 1000000 | divided_by: 100000 %}{% if _d == 0 %}{{_n}}m{% else %}{{_n}}.{{_d}}m{% endif %}{% elsif num >= 1000 %}{% assign _n = num | divided_by: 1000 %}{% assign _d = num | modulo: 1000 | divided_by: 100 %}{% if _d == 0 %}{{_n}}k{% else %}{{_n}}.{{_d}}k{% endif %}{% else %}{{num}}{% endif %}{% endtemplate %}
+
 {% template movie_item %}
 <div class="flex flex--row flex--top gap--small movie_item">
   {% if movie.image_url and show_images != "false" %}
@@ -97,7 +99,7 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
     </div>
 
     {% endif %}
-    {% capture _mmeta %}{{movie.year}}{% if movie.genres.size > 0 %} · Movie{% endif %}{% unless movie.progress %}{% if movie.watched_at %} ✔ {% render "date": datetime: movie.watched_at, trmnl:trmnl %}{% endif %}{% if movie.rating %} · ★ {{movie.rating}}/10{% endif %}{% endunless %}{% if movie.watchers %} · {{movie.watchers}} watching{% endif %}{% for g in movie.genres limit: 2 %} · {{g}}{% endfor %}{% endcapture %}
+    {% capture _mmeta %}{{movie.year}}{% if movie.genres.size > 0 %} · Movie{% endif %}{% unless movie.progress %}{% if movie.watched_at %} ✔ {% render "date": datetime: movie.watched_at, trmnl:trmnl %}{% endif %}{% if movie.rating %} · ★ {{movie.rating}}/10{% endif %}{% endunless %}{% if movie.watchers %} · {% render "fmt_num", num: movie.watchers %} watching{% endif %}{% for g in movie.genres limit: 2 %} · {{g}}{% endfor %}{% endcapture %}
     <div class="label label--small w--full text--left m--0"><strong>{{_mmeta | strip | truncate: 200, ""}}</strong></div>
 
     {% render "overview_item", overview_text: movie.overview, desc_clamp: desc_clamp, desc_clamp_lg: desc_clamp_lg, desc_clamp_portrait: desc_clamp_portrait, desc_clamp_lg_portrait: desc_clamp_lg_portrait %}
@@ -139,7 +141,7 @@ assign current_year = now_timestamp | date: "%Y" | plus: 0
     {% if show.collected_at %}
     <div class="label label--small w--full text--left m--0">Collected at {% render "date": datetime: show.collected_at, trmnl:trmnl %}</div>
     {% endif %}
-    {% capture _smeta %}{% if show.watched_at %}✔ {% render "date": datetime: show.watched_at, trmnl:trmnl %} {% endif %}{% if show.progress %}({{show.progress}}%) {% endif %}{{show.year}}{% if show.genres.size > 0 %} · Show{% endif %}{% if show.rating %} · ★ {{show.rating}}/10{% endif %}{% if show.network %} · {{show.network}}{% endif %}{% if show.watchers %} · {{show.watchers}} watching{% endif %}{% for g in show.genres limit: 2 %} · {{g}}{% endfor %}{% endcapture %}
+    {% capture _smeta %}{% if show.watched_at %}✔ {% render "date": datetime: show.watched_at, trmnl:trmnl %} {% endif %}{% if show.progress %}({{show.progress}}%) {% endif %}{{show.year}}{% if show.genres.size > 0 %} · Show{% endif %}{% if show.rating %} · ★ {{show.rating}}/10{% endif %}{% if show.network %} · {{show.network}}{% endif %}{% if show.watchers %} · {% render "fmt_num", num: show.watchers %} watching{% endif %}{% for g in show.genres limit: 2 %} · {{g}}{% endfor %}{% endcapture %}
     <div class="label label--small w--full text--left m--0"><strong>{{_smeta | strip | truncate: 200, ""}}</strong></div>
     {% render "overview_item", overview_text: show.overview, desc_clamp: desc_clamp, desc_clamp_lg: desc_clamp_lg, desc_clamp_portrait: desc_clamp_portrait, desc_clamp_lg_portrait: desc_clamp_lg_portrait %}
     {% endif %}
