@@ -12,6 +12,7 @@ custom_fields:
 - keyname: author_bio
   field_type: author_bio
   name: About This Plugin
+  category: entertainment
   description: |
     Track your Trakt.tv activity right on your TRMNL device.<br /><br />
     <strong>Available categories</strong><br />
