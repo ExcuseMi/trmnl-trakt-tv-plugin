@@ -3,7 +3,7 @@
 <!-- PLUGIN_STATS_START -->
 ## 🚀 TRMNL Plugin(s)
 
-*Last updated: 2026-03-05 06:46:01 UTC*
+*Last updated: 2026-03-06 06:42:07 UTC*
 
 
 ## <img src="assets/plugin-images/245666_icon.png" alt="Trakt.tv icon" width="32"/> [Trakt.tv](https://trmnl.com/recipes/245666)
@@ -24,7 +24,7 @@ Track your Trakt.tv activity right on your TRMNL device.<br /><br />
 · <strong>Trending</strong> — what's popular right now<br />
 · <strong>Upcoming</strong> — next episodes &amp; releases <em>(self only)</em><br />
 · <strong>Watchlist</strong> — saved items<br /><br />
-<strong>Requires Trakt.tv OAuth</strong><br /><br /><br />Pick the order you want your categories to appear using the dropdowns.<br />Don't worry about empty categories—they'll be automatically skipped, and the next one with data will show instead.<br /><br />Icons by <a href="https://www.svgrepo.com">SVG Repo</a>  category: entertainment
+<strong>Requires Trakt.tv OAuth</strong><br /><br /><br />Pick the order you want your categories to appear using the dropdowns.<br />Don't worry about empty categories—they'll be automatically skipped, and the next one with data will show instead.<br /><br />Icons by <a href="https://www.svgrepo.com">SVG Repo</a>  
 
 
 ---
