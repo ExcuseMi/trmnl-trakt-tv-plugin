@@ -3,7 +3,7 @@
 <!-- PLUGIN_STATS_START -->
 ## 🚀 TRMNL Plugin(s)
 
-*Last updated: 2026-03-15 06:52:36 UTC*
+*Last updated: 2026-03-16 07:12:20 UTC*
 
 
 ## <img src="assets/plugin-images/245666_icon.png" alt="Trakt.tv icon" width="32"/> [Trakt.tv](https://trmnl.com/recipes/245666)
