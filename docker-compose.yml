@@ -31,8 +31,8 @@ services:
     image: redis:7-alpine
     container_name: trmnl-traktv-redis
     restart: unless-stopped
-    volumes:
-      - redis_data:/data
+    # Cached viewing history stays in memory only: no snapshots, no volume
+    command: redis-server --save "" --appendonly no
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -40,5 +40,3 @@ services:
       retries: 3
       start_period: 5s
 
-volumes:
-  redis_data:

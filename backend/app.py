@@ -129,11 +129,9 @@ async def _ip_refresh_loop():
 
 
 def _client_ip(request: Request) -> str:
-    for header in ('CF-Connecting-IP', 'X-Forwarded-For', 'X-Real-IP'):
-        val = request.headers.get(header)
-        if val:
-            return val.split(',')[0].strip()
-    return request.client.host
+    # Only Cloudflare's header: X-Forwarded-For and X-Real-IP can be set by the client
+    val = request.headers.get('CF-Connecting-IP')
+    return val.strip() if val else request.client.host
 
 
 async def require_whitelisted_ip(request: Request):

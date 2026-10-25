@@ -211,3 +211,4 @@ __marimo__/
 .idea/trmnt-trakt-tv-plugin.iml
 .idea/vcs.xml
 /.idea/trmnl-trakt-tv-plugin.iml
+.venv/
